@@ -1,7 +1,10 @@
-build/
-vanilla/
-testserver/
-renders/
-__pycache__/
 *.pyc
+.gradle/
+__pycache__/
+build/
+renders/
+run/
+src/generated/
+testserver/
 testserver_vanilla/
+vanilla/

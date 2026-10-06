@@ -1,30 +1,22 @@
 import json
 import shutil
 import sys
-import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).parent
 REF = ROOT / "vanilla"
 VAN = REF / "data" / "minecraft"
-OUT = ROOT / "build" / "pack"
-DIST = ROOT / "build"
+OUT = ROOT / "src" / "generated" / "resources"
 
 NS = "skystrata"
 NAME = "Sky Strata"
-VERSION = "1.0.0"
-PACK_FORMAT = 48
 PRESET = "sky_strata"
 
 MIN_Y = -64
-HEIGHT = 528
+HEIGHTS = (528, 784, 1040, 1552, 2096)
 TERRAIN_TOP_SLIDE = (130, 175)
 LAND_LIFT = 0.20
 DRY_ABOVE_Y = 10
-
-GIANT = dict(top=255.0, top_var=25.0, top_k=1 / 40, bottom_k=1 / 900, undercut_k=1 / 280, undercut_from=40.0, bias=0.08, wall_noise=0.045, floor=20, ceiling=305)
-DENSE = dict(center=335, top_k=1 / 16, bottom_k=1 / 50, bias=-0.1, gate=(305, 375))
-SPARSE = dict(center=425, top_k=1 / 10, bottom_k=1 / 38, bias=-0.48, gate=(385, 462))
 
 SKY_BIOMES = {
     "sky_taiga": ("taiga", (-2.0, -0.6), (-2.0, 2.0)),
@@ -40,12 +32,33 @@ SKY_NAMES = {
     "sky_birch": ("Birch Isle", "Берёзовый остров"), "sky_savanna": ("Sky Savanna", "Небесная саванна"),
 }
 PRESET_NAMES = (NAME, "Небесные пласты")
+UI_STRINGS = {
+    "screen.title": ("Sky Strata layers", "Слои Sky Strata"),
+    "kind.continents": ("Continents", "Континенты"),
+    "kind.islands": ("Islands", "Острова"),
+    "kind.shards": ("Shards", "Осколки"),
+    "layer.kind": ("Type", "Тип"),
+    "layer.kind.tooltip": ("Continents: huge landmasses with cliffs. Islands: frequent big islands. Shards: small scattered rocks.",
+                           "Континенты: огромные массивы с обрывами. Острова: частые крупные острова. Осколки: мелкие редкие скалы."),
+    "layer.gap": ("Gap: %s", "Отступ: %s"),
+    "layer.gap.tooltip": ("Blocks between the top of the previous layer (sea level for the first one) and the bottom of this layer.",
+                          "Сколько блоков от верха предыдущего слоя (для первого — от уровня моря) до низа этого слоя."),
+    "layer.thickness": ("Thickness: %s", "Толщина: %s"),
+    "layer.thickness.tooltip": ("Vertical size of the layer in blocks.", "Высота слоя в блоках."),
+    "layer.density": ("Density: %s", "Плотность: %s"),
+    "layer.density.tooltip": ("How much of the sky the layer covers.", "Какую часть неба занимает слой."),
+    "layer.size": ("Island size: %s", "Размер островов: %s"),
+    "layer.size.tooltip": ("Horizontal scale of the islands.", "Горизонтальный размер островов."),
+    "button.add": ("Add layer", "Добавить слой"),
+    "button.reset": ("Reset to default", "Сбросить"),
+    "button.remove": ("Remove layer", "Удалить слой"),
+    "info.height": ("World height: %s, layer tops: %s", "Высота мира: %s, верх слоёв: %s"),
+    "info.too_tall": ("Layers are too high: the world ends at y %s", "Слои слишком высоко: мир заканчивается на y %s"),
+}
 SKY_DEPTH = -2.0
-SKY_BIOME_FROM = 308
-OVERHANG_LIGHTS = 256
-OVERHANG_LIGHT_Y = (185, 462)
-SHADOW_LIGHTS = 256
-SHADOW_LIGHT_Y = (40, 450)
+OVERHANG_LIGHTS_PER_BLOCK = 0.925
+SHADOW_LIGHTS_PER_BLOCK = 0.625
+LICHEN_PER_BLOCK = 0.3
 SHADOW_COVER = 24
 SHADOW_FLOORS = ["grass_block", "podzol", "mycelium", "dirt", "coarse_dirt", "rooted_dirt", "snow_block", "sand", "red_sand", "gravel", "mud"]
 
@@ -102,10 +115,6 @@ def yrange(lo, hi, inside, outside):
             "when_in_range": inside, "when_out_of_range": outside}
 
 
-def interp(x):
-    return {"type": "minecraft:interpolated", "argument": x}
-
-
 def noises():
     defs = {
         "isl_giant": (-9, [1.0, 0.5, 0.3, 0.15]),
@@ -121,8 +130,8 @@ def noises():
 
 def density_functions():
     land = clamp(mul(4.0, add("minecraft:overworld/continents", 0.15)), 0.0, 1.0)
-    lift = mul(LAND_LIFT, land)
-    write("worldgen/density_function/offset.json", flat(add("minecraft:overworld/offset", lift)))
+    write("worldgen/density_function/land.json", land)
+    write("worldgen/density_function/offset.json", flat(add("minecraft:overworld/offset", mul(LAND_LIFT, df("land")))))
     write("worldgen/density_function/depth.json", add(grad(-64, 1.5, 320, -1.5), df("offset")))
 
     sc = json.dumps(load("worldgen/density_function/overworld/sloped_cheese.json"))
@@ -131,23 +140,9 @@ def density_functions():
 
     write("worldgen/density_function/biome_depth.json", mx(0.0, df("depth")))
 
-    p = GIANT
-    shape = add(noise(df("isl_giant")), add(p["bias"], mul(1.5, add(land, -1.0))))
-    h = add(flat(shape), mul(p["wall_noise"], noise(df("isl_detail"), 1.0, 1.0)))
-    top = flat(add(p["top"], mul(p["top_var"], noise(df("isl_giant_top")))))
-    below_top = add("minecraft:y", mul(-1.0, top))
-    undercut = mul(p["undercut_k"], add(below_top, p["undercut_from"]))
-    profile = mn(mn(mul(-p["top_k"], below_top), mul(p["bottom_k"], below_top)), undercut)
-    write("worldgen/density_function/islands_giant.json", yrange(p["floor"], p["ceiling"], mul(2.0, add(h, profile)), -1.0))
 
-    shapes = {"islands_dense": (DENSE, add(noise(df("isl_dense")), add(DENSE["bias"], mul(0.22, noise(df("isl_dense_mask")))))),
-              "islands_sparse": (SPARSE, add(noise(df("isl_sparse")), SPARSE["bias"]))}
-    for name, (p, shape) in shapes.items():
-        c = p["center"]
-        h = add(flat(shape), mul(0.12, noise(df("isl_detail"), 1.0, 1.0)))
-        profile = mn(grad(c, 0.0, c + 100, -100 * p["top_k"]), grad(c - 100, -100 * p["bottom_k"], c, 0.0))
-        lo, hi = p["gate"]
-        write(f"worldgen/density_function/{name}.json", yrange(lo, hi, mul(2.0, add(h, profile)), -1.0))
+def layer_count(per_block, from_ground=False):
+    return {"type": f"{NS}:layer_count", "per_block": per_block, "from_ground": from_ground}
 
 
 def island_lichen():
@@ -156,10 +151,8 @@ def island_lichen():
     cf["config"]["can_be_placed_on"] += ["minecraft:dirt", "minecraft:coarse_dirt"]
     write("worldgen/configured_feature/island_lichen.json", cf)
     write("worldgen/placed_feature/island_lichen.json", {"feature": df("island_lichen"), "placement": [
-        {"type": "minecraft:count", "count": 128},
+        layer_count(LICHEN_PER_BLOCK, True),
         {"type": "minecraft:in_square"},
-        {"type": "minecraft:height_range", "height": {"type": "minecraft:uniform",
-                                                      "min_inclusive": {"absolute": 60}, "max_inclusive": {"absolute": 380}}},
         {"type": "minecraft:biome"}]})
     return [df("island_lichen")]
 
@@ -175,17 +168,14 @@ def overhang_light():
     scans = {"ceiling": ceiling,
              "floor": ("down", 1, [air, dict(air, offset=[0, 4, 0]), dict(solid, offset=[0, -1, 0]), roofed])}
     floors = {"type": "minecraft:matching_blocks", "blocks": [f"minecraft:{b}" for b in SHADOW_FLOORS], "offset": [0, -1, 0]}
-    scans["shadow"] = ("down", 1, [air, floors], SHADOW_LIGHTS, SHADOW_LIGHT_Y,
+    scans["shadow"] = ("down", 1, [air, floors], layer_count(SHADOW_LIGHTS_PER_BLOCK, True),
                        [{"type": "minecraft:surface_relative_threshold_filter", "heightmap": "WORLD_SURFACE_WG",
                          "max_inclusive": -SHADOW_COVER}])
     for name, (direction, step, preds, *extra) in scans.items():
-        count, (lo, hi), filters = extra if extra else (OVERHANG_LIGHTS, OVERHANG_LIGHT_Y, [])
+        count, filters = extra if extra else (layer_count(OVERHANG_LIGHTS_PER_BLOCK), [])
         write(f"worldgen/placed_feature/overhang_light_{name}.json", {"feature": df("overhang_light"), "placement": [
-            {"type": "minecraft:count", "count": count},
+            count,
             {"type": "minecraft:in_square"},
-            {"type": "minecraft:height_range", "height": {"type": "minecraft:uniform",
-                                                          "min_inclusive": {"absolute": lo},
-                                                          "max_inclusive": {"absolute": hi}}},
             {"type": "minecraft:environment_scan", "direction_of_search": direction, "max_steps": 32,
              "target_condition": solid, "allowed_search_condition": air},
             {"type": "minecraft:random_offset", "xz_spread": 0, "y_spread": step},
@@ -282,25 +272,24 @@ def retarget(obj):
 def noise_settings():
     ns = load("worldgen/noise_settings/overworld.json")
     ns["noise"]["min_y"] = MIN_Y
-    ns["noise"]["height"] = HEIGHT
+    ns["noise"]["height"] = HEIGHTS[0]
     r = ns["noise_router"]
 
-    terrain = yrange(MIN_Y, TERRAIN_TOP_SLIDE[1] + 8, retarget(r["final_density"]), -1.0)
-    giant = interp(df("islands_giant"))
-    sky = interp(mx(df("islands_dense"), df("islands_sparse")))
-    r["final_density"] = mx(mx(terrain, giant), sky)
+    write("worldgen/density_function/terrain.json", yrange(MIN_Y, TERRAIN_TOP_SLIDE[1] + 8, retarget(r["final_density"]), -1.0))
+    r["final_density"] = {"type": f"{NS}:strata", "terrain": df("terrain"), "land": df("land")}
 
     r["fluid_level_floodedness"] = yrange(MIN_Y, DRY_ABOVE_Y, r["fluid_level_floodedness"], -1.0)
     r["initial_density_without_jaggedness"] = retarget(r["initial_density_without_jaggedness"])
 
-    r["depth"] = yrange(MIN_Y, SKY_BIOME_FROM, df("biome_depth"), SKY_DEPTH)
+    r["depth"] = {"type": f"{NS}:strata_biome_depth", "fallback": df("biome_depth")}
     write(f"worldgen/noise_settings/{PRESET}.json", ns)
 
 
 def dimension_type():
-    dt = load("dimension_type/overworld.json")
-    dt.update(min_y=MIN_Y, height=HEIGHT, logical_height=HEIGHT)
-    write(f"dimension_type/{PRESET}.json", dt)
+    for i, h in enumerate(HEIGHTS):
+        dt = load("dimension_type/overworld.json")
+        dt.update(min_y=MIN_Y, height=h, logical_height=h)
+        write(f"dimension_type/{PRESET}{'' if i == 0 else f'_{h}'}.json", dt)
 
 
 def biome_copy(src, remap, extra):
@@ -365,6 +354,7 @@ def lang(sources):
     for i, code in enumerate(("en_us", "ru_ru")):
         van = json.loads((REF / "lang" / f"{code}.json").read_text(encoding="utf-8"))
         d = {f"generator.{NS}.{PRESET}": PRESET_NAMES[i]}
+        d.update({f"{NS}.{k}": v[i] for k, v in UI_STRINGS.items()})
         for name in sources:
             d[f"biome.{NS}.{name}"] = SKY_NAMES[name][i] if name in SKY_NAMES else van[f"biome.minecraft.{name}"]
         p = OUT / "assets" / NS / "lang" / f"{code}.json"
@@ -372,53 +362,8 @@ def lang(sources):
         p.write_text(json.dumps(d, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
-DESCRIPTION = "Giant floating continents over a forest floor, plus two layers of sky islands. Adds a separate world type."
-REPO = "https://github.com/Restor-0o0/sky-strata"
-
-MODS_TOML = f"""modLoader="lowcodefml"
-loaderVersion="[4,)"
-license="MIT"
-issueTrackerURL="{REPO}/issues"
-
-[[mods]]
-modId="{NS}"
-version="{VERSION}"
-displayName="{NAME}"
-authors="Alexey Komarov"
-displayURL="{REPO}"
-description="{DESCRIPTION}"
-
-[[dependencies.{NS}]]
-modId="minecraft"
-type="required"
-versionRange="[1.21,1.21.2)"
-ordering="NONE"
-side="BOTH"
-"""
-
-
-def meta():
-    (OUT / "pack.mcmeta").write_text(json.dumps({"pack": {"pack_format": PACK_FORMAT, "description": f"{NAME}: {DESCRIPTION}"}},
-                                                indent=1), encoding="utf-8")
-    shutil.copy(ROOT / "LICENSE", OUT / "LICENSE")
-
-
-def zip_dir(src, dst, extra=None):
-    with zipfile.ZipFile(dst, "w", zipfile.ZIP_DEFLATED) as z:
-        for name, text in (extra or {}).items():
-            z.writestr(name, text)
-        for f in sorted(src.rglob("*")):
-            if f.is_file():
-                z.write(f, f.relative_to(src).as_posix())
-
-
-def package():
-    zip_dir(OUT, DIST / f"{NS}-{VERSION}-datapack.zip")
-    zip_dir(OUT, DIST / f"{NS}-{VERSION}.jar", {"META-INF/neoforge.mods.toml": MODS_TOML})
-
-
 if __name__ == "__main__":
-    shutil.rmtree(DIST, ignore_errors=True)
+    shutil.rmtree(OUT, ignore_errors=True)
     noises()
     density_functions()
     noise_settings()
@@ -428,7 +373,4 @@ if __name__ == "__main__":
     world_preset(params)
     tags = biome_tags(sources)
     lang(sources)
-    meta()
-    package()
     print(f"biomes {len(sources)}, layered features {len(remap)}, tags {tags}", file=sys.stderr)
-    print("built", sorted(p.name for p in DIST.iterdir()), file=sys.stderr)

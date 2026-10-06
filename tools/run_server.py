@@ -11,7 +11,9 @@ RADIUS_CHUNKS = int(sys.argv[1]) if len(sys.argv) > 1 else 16
 CX = int(sys.argv[2]) if len(sys.argv) > 2 else 0
 CZ = int(sys.argv[3]) if len(sys.argv) > 3 else 0
 
-proc = subprocess.Popen([JAVA, "-Xmx6G", "-jar", "server.jar", "nogui"], cwd=DIR,
+neo = sorted(DIR.glob("libraries/net/neoforged/neoforge/*/" + ("win_args.txt" if os.name == "nt" else "unix_args.txt")))
+launch = ["@" + neo[-1].relative_to(DIR).as_posix()] if neo else ["-jar", "server.jar"]
+proc = subprocess.Popen([JAVA, "-Xmx6G", *launch, "nogui"], cwd=DIR,
                         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                         text=True, encoding="utf-8", errors="replace", bufsize=1)
 lines = []
