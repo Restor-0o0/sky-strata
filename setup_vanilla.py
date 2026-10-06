@@ -54,8 +54,9 @@ def main():
     with zipfile.ZipFile(inner) as z:
         (REF / "lang" / "en_us.json").write_bytes(z.read("assets/minecraft/lang/en_us.json"))
     index = json.loads(get(version["assetIndex"]["url"]))
-    h = index["objects"]["minecraft/lang/ru_ru.json"]["hash"]
-    (REF / "lang" / "ru_ru.json").write_bytes(get(f"https://resources.download.minecraft.net/{h[:2]}/{h}"))
+    for code in sorted(p.stem for p in (ROOT / "lang").glob("*.json") if p.stem != "en_us"):
+        h = index["objects"][f"minecraft/lang/{code}.json"]["hash"]
+        (REF / "lang" / f"{code}.json").write_bytes(get(f"https://resources.download.minecraft.net/{h[:2]}/{h}"))
 
     print("downloading neoforge", NEOFORGE)
     nf = get(f"https://maven.neoforged.net/releases/net/neoforged/neoforge/{NEOFORGE}/neoforge-{NEOFORGE}-universal.jar")

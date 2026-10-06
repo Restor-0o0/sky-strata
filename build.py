@@ -9,7 +9,6 @@ VAN = REF / "data" / "minecraft"
 OUT = ROOT / "src" / "generated" / "resources"
 
 NS = "skystrata"
-NAME = "Sky Strata"
 PRESET = "sky_strata"
 
 MIN_Y = -64
@@ -25,35 +24,6 @@ SKY_BIOMES = {
     "sky_cherry": ("cherry_grove", (-0.2, 0.2), (-2.0, 2.0)),
     "sky_birch": ("birch_forest", (0.2, 0.6), (-2.0, 2.0)),
     "sky_savanna": ("savanna", (0.6, 2.0), (-2.0, 2.0)),
-}
-SKY_NAMES = {
-    "sky_taiga": ("Sky Taiga", "Небесная тайга"), "sky_meadow": ("Sky Meadow", "Небесный луг"),
-    "sky_forest": ("Sky Forest", "Небесный лес"), "sky_cherry": ("Cherry Isle", "Вишнёвый остров"),
-    "sky_birch": ("Birch Isle", "Берёзовый остров"), "sky_savanna": ("Sky Savanna", "Небесная саванна"),
-}
-PRESET_NAMES = (NAME, "Небесные пласты")
-UI_STRINGS = {
-    "screen.title": ("Sky Strata layers", "Слои Sky Strata"),
-    "kind.continents": ("Continents", "Континенты"),
-    "kind.islands": ("Islands", "Острова"),
-    "kind.shards": ("Shards", "Осколки"),
-    "layer.kind": ("Type", "Тип"),
-    "layer.kind.tooltip": ("Continents: huge landmasses with cliffs. Islands: frequent big islands. Shards: small scattered rocks.",
-                           "Континенты: огромные массивы с обрывами. Острова: частые крупные острова. Осколки: мелкие редкие скалы."),
-    "layer.gap": ("Gap: %s", "Отступ: %s"),
-    "layer.gap.tooltip": ("Blocks between the top of the previous layer (sea level for the first one) and the bottom of this layer.",
-                          "Сколько блоков от верха предыдущего слоя (для первого — от уровня моря) до низа этого слоя."),
-    "layer.thickness": ("Thickness: %s", "Толщина: %s"),
-    "layer.thickness.tooltip": ("Vertical size of the layer in blocks.", "Высота слоя в блоках."),
-    "layer.density": ("Density: %s", "Плотность: %s"),
-    "layer.density.tooltip": ("How much of the sky the layer covers.", "Какую часть неба занимает слой."),
-    "layer.size": ("Island size: %s", "Размер островов: %s"),
-    "layer.size.tooltip": ("Horizontal scale of the islands.", "Горизонтальный размер островов."),
-    "button.add": ("Add layer", "Добавить слой"),
-    "button.reset": ("Reset to default", "Сбросить"),
-    "button.remove": ("Remove layer", "Удалить слой"),
-    "info.height": ("World height: %s, layer tops: %s", "Высота мира: %s, верх слоёв: %s"),
-    "info.too_tall": ("Layers are too high: the world ends at y %s", "Слои слишком высоко: мир заканчивается на y %s"),
 }
 SKY_DEPTH = -2.0
 OVERHANG_LIGHTS_PER_BLOCK = 0.925
@@ -351,16 +321,21 @@ def world_preset(biome_params):
 
 
 def lang(sources):
-    for i, code in enumerate(("en_us", "ru_ru")):
-        van = json.loads((REF / "lang" / f"{code}.json").read_text(encoding="utf-8"))
-        d = {f"generator.{NS}.{PRESET}": PRESET_NAMES[i]}
-        d.update({f"{NS}.{k}": v[i] for k, v in UI_STRINGS.items()})
+    base = json.loads((ROOT / "lang" / "en_us.json").read_text(encoding="utf-8"))
+    en = json.loads((REF / "lang" / "en_us.json").read_text(encoding="utf-8"))
+    for src in sorted((ROOT / "lang").glob("*.json")):
+        code = src.stem
+        mod = base | json.loads(src.read_text(encoding="utf-8"))
+        van_path = REF / "lang" / f"{code}.json"
+        van = json.loads(van_path.read_text(encoding="utf-8")) if van_path.exists() else {}
+        d = {f"generator.{NS}.{PRESET}": mod["preset"]}
+        d.update({f"{NS}.{k}": v for k, v in mod.items() if k != "preset" and not k.startswith("biome.")})
         for name in sources:
-            d[f"biome.{NS}.{name}"] = SKY_NAMES[name][i] if name in SKY_NAMES else van[f"biome.minecraft.{name}"]
+            key = f"biome.minecraft.{name}"
+            d[f"biome.{NS}.{name}"] = mod.get(f"biome.{name}") or van.get(key) or en[key]
         p = OUT / "assets" / NS / "lang" / f"{code}.json"
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(json.dumps(d, ensure_ascii=False, indent=1), encoding="utf-8")
-
 
 if __name__ == "__main__":
     shutil.rmtree(OUT, ignore_errors=True)

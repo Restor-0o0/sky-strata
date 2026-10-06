@@ -64,6 +64,10 @@ python tools/render.py 528                                           # slices an
 python tools/light_stats.py                                          # light coverage under overhangs
 ```
 
+## Translations
+
+The mod's strings live in `lang/<code>.json` (English, Russian, Ukrainian, German, French, Spanish, Brazilian Portuguese, Polish, Italian, Turkish, Simplified and Traditional Chinese, Japanese, Korean). To add a language, copy `lang/en_us.json` to the new language code, translate it and rerun `setup_vanilla.py` and `build.py`; biome names come from the game's own translations.
+
 ## License
 
 MIT
