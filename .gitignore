@@ -1,0 +1,7 @@
+build/
+vanilla/
+testserver/
+renders/
+__pycache__/
+*.pyc
+testserver_vanilla/
