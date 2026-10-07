@@ -4,10 +4,14 @@ import io.github.restor0o0.skystrata.Layer;
 import io.github.restor0o0.skystrata.Strata;
 import io.github.restor0o0.skystrata.StrataPreset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.CycleButton;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationContext;
@@ -16,13 +20,16 @@ import net.minecraft.network.chat.Component;
 
 public class StrataScreen extends Screen {
     private static final int MIN_HEIGHT = 384;
+    private static final int LIST_WIDTH = 150, EDITOR_WIDTH = 200, GAP = 10;
 
     private final CreateWorldScreen parent;
     private final int maxHeight;
     final List<Layer> layers;
+    private final List<AbstractWidget> editor = new ArrayList<>();
+    private int selected;
     private LayerList list;
-    private Button add;
-    private Button done;
+    private Button preset, add, remove, up, down, done;
+    private int editorX, editorY;
 
     public StrataScreen(CreateWorldScreen parent, WorldCreationContext context) {
         super(Component.translatable("skystrata.screen.title"));
@@ -34,41 +41,110 @@ public class StrataScreen extends Screen {
 
     @Override
     protected void init() {
-        list = addRenderableWidget(new LayerList(this, minecraft, width, height - 112, 32));
-        int x = width / 2, y = height - 56;
-        add = addRenderableWidget(Button.builder(Component.translatable("skystrata.button.add"), b -> {
+        int left = width / 2 - (LIST_WIDTH + GAP + EDITOR_WIDTH) / 2;
+        int top = 50, bottom = height - 52;
+        editorX = left + LIST_WIDTH + GAP;
+        editorY = top;
+
+        preset = addRenderableWidget(Button.builder(Component.empty(), b -> nextPreset())
+                .bounds(left, 24, LIST_WIDTH + GAP + EDITOR_WIDTH, 20).build());
+        list = addRenderableWidget(new LayerList(this, minecraft, left, top, LIST_WIDTH, bottom - top - 24));
+
+        int y = bottom - 20;
+        add = addRenderableWidget(small("+", "skystrata.button.add", left, y, b -> {
             layers.add(Layer.Kind.ISLANDS.defaults());
-            refresh();
-        }).bounds(x - 155, y, 150, 20).build());
-        addRenderableWidget(Button.builder(Component.translatable("skystrata.button.reset"), b -> {
-            layers.clear();
-            layers.addAll(Strata.DEFAULT.layers());
-            refresh();
-        }).bounds(x + 5, y, 150, 20).build());
-        done = addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, b -> apply()).bounds(x - 155, y + 24, 150, 20).build());
-        addRenderableWidget(Button.builder(CommonComponents.GUI_CANCEL, b -> onClose()).bounds(x + 5, y + 24, 150, 20).build());
-        refresh();
+            refresh(layers.size() - 1);
+        }));
+        remove = addRenderableWidget(small("−", "skystrata.button.remove", left + 38, y, b -> {
+            layers.remove(selected);
+            refresh(Math.min(selected, layers.size() - 1));
+        }));
+        up = addRenderableWidget(small("↑", "skystrata.button.up", left + 76, y, b -> move(-1)));
+        down = addRenderableWidget(small("↓", "skystrata.button.down", left + 114, y, b -> move(1)));
+
+        int x = width / 2;
+        done = addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, b -> apply()).bounds(x - 155, height - 28, 150, 20).build());
+        addRenderableWidget(Button.builder(CommonComponents.GUI_CANCEL, b -> onClose()).bounds(x + 5, height - 28, 150, 20).build());
+        refresh(layers.isEmpty() ? -1 : Math.min(Math.max(selected, 0), layers.size() - 1));
     }
 
-    void set(int index, Layer layer, boolean rebuild) {
-        layers.set(index, layer);
-        if (rebuild) list.rebuild();
+    private static Button small(String label, String tooltip, int x, int y, Button.OnPress onPress) {
+        return Button.builder(Component.literal(label), onPress).bounds(x, y, 34, 20)
+                .tooltip(Tooltip.create(Component.translatable(tooltip))).build();
+    }
+
+    private void nextPreset() {
+        int next = (LayerPresets.indexOf(layers) + 1) % LayerPresets.ALL.size();
+        layers.clear();
+        layers.addAll(LayerPresets.ALL.get(next).strata().layers());
+        refresh(0);
+    }
+
+    private void move(int dir) {
+        Collections.swap(layers, selected, selected + dir);
+        refresh(selected + dir);
+    }
+
+    private void refresh(int select) {
+        selected = select;
+        list.rebuild(select);
+        buildEditor();
         update();
     }
 
-    void remove(int index) {
-        layers.remove(index);
-        refresh();
+    void select(int index) {
+        selected = index;
+        buildEditor();
+        update();
     }
 
-    private void refresh() {
-        list.rebuild();
+    private void set(Layer layer, boolean rebuildEditor) {
+        layers.set(selected, layer);
+        list.rebuild(selected);
+        if (rebuildEditor) buildEditor();
         update();
+    }
+
+    private void buildEditor() {
+        editor.forEach(this::removeWidget);
+        editor.clear();
+        if (selected < 0 || selected >= layers.size()) return;
+        Layer l = layers.get(selected);
+        CycleButton<Layer.Kind> kind = CycleButton.builder((Layer.Kind k) -> Component.translatable("skystrata.kind." + k.getSerializedName()))
+                .withValues(Layer.Kind.values()).withInitialValue(l.kind())
+                .create(0, 0, EDITOR_WIDTH, 20, Component.translatable("skystrata.layer.kind"),
+                        (b, k) -> set(k.defaults().withGap(layer().gap()), true));
+        kind.setTooltip(Tooltip.create(Component.translatable("skystrata.layer.kind.tooltip")));
+        editor.add(kind);
+        editor.add(new ValueSlider(EDITOR_WIDTH, "skystrata.layer.gap", Layer.MIN_GAP, Layer.MAX_GAP, 1, l.gap(), String::valueOf,
+                v -> set(layer().withGap(v), false)));
+        editor.add(new ValueSlider(EDITOR_WIDTH, "skystrata.layer.thickness", Layer.MIN_THICKNESS, Layer.MAX_THICKNESS, 1, l.thickness(),
+                String::valueOf, v -> set(layer().withThickness(v), false)));
+        editor.add(new ValueSlider(EDITOR_WIDTH, "skystrata.layer.density", 0, 100, 1, Math.round(l.density() * 100), v -> v + "%",
+                v -> set(layer().withDensity(v / 100f), false)));
+        editor.add(new ValueSlider(EDITOR_WIDTH, "skystrata.layer.size", Math.round(Layer.MIN_SIZE * 100), Math.round(Layer.MAX_SIZE * 100), 5,
+                Math.round(l.size() * 100), v -> v + "%", v -> set(layer().withSize(v / 100f), false)));
+        for (int i = 0; i < editor.size(); i++) {
+            editor.get(i).setPosition(editorX, editorY + i * 24);
+            addRenderableWidget(editor.get(i));
+        }
+    }
+
+    private Layer layer() {
+        return layers.get(selected);
     }
 
     private void update() {
+        boolean has = selected >= 0 && selected < layers.size();
         add.active = layers.size() < Strata.MAX_LAYERS;
+        remove.active = has;
+        up.active = has && selected > 0;
+        down.active = has && selected < layers.size() - 1;
         done.active = fits();
+        int p = LayerPresets.indexOf(layers);
+        Component name = Component.translatable(p < 0 ? "skystrata.preset.custom" : "skystrata.preset." + LayerPresets.ALL.get(p).name());
+        preset.setMessage(Component.translatable("skystrata.button.preset", name));
+        preset.setTooltip(p < 0 ? null : Tooltip.create(Component.translatable("skystrata.preset." + LayerPresets.ALL.get(p).name() + ".tooltip")));
     }
 
     private Strata strata() {
@@ -92,7 +168,10 @@ public class StrataScreen extends Screen {
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.render(graphics, mouseX, mouseY, partialTick);
-        graphics.drawCenteredString(font, title, width / 2, 12, 0xFFFFFF);
+        graphics.drawCenteredString(font, title, width / 2, 8, 0xFFFFFF);
+        if (layers.isEmpty()) {
+            graphics.drawCenteredString(font, Component.translatable("skystrata.info.empty"), editorX + EDITOR_WIDTH / 2, editorY + 6, 0xA0A0A0);
+        }
         Component info;
         if (fits()) {
             String tops = strata().placed().stream().map(p -> String.valueOf(p.top())).collect(Collectors.joining(" / "));
@@ -100,7 +179,7 @@ public class StrataScreen extends Screen {
         } else {
             info = Component.translatable("skystrata.info.too_tall", maxHeight + Strata.MIN_Y - 1);
         }
-        graphics.drawCenteredString(font, info, width / 2, height - 72, fits() ? 0xA0A0A0 : 0xFF5555);
+        graphics.drawCenteredString(font, info, width / 2, height - 44, fits() ? 0xA0A0A0 : 0xFF5555);
     }
 
     @Override

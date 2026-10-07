@@ -26,11 +26,7 @@ SKY_BIOMES = {
     "sky_savanna": ("savanna", (0.6, 2.0), (-2.0, 2.0)),
 }
 SKY_DEPTH = -2.0
-OVERHANG_LIGHTS_PER_BLOCK = 0.925
-SHADOW_LIGHTS_PER_BLOCK = 0.625
 LICHEN_PER_BLOCK = 0.3
-SHADOW_COVER = 24
-SHADOW_FLOORS = ["grass_block", "podzol", "mycelium", "dirt", "coarse_dirt", "rooted_dirt", "snow_block", "sand", "red_sand", "gravel", "mud"]
 
 
 def load(rel):
@@ -125,34 +121,6 @@ def island_lichen():
         {"type": "minecraft:in_square"},
         {"type": "minecraft:biome"}]})
     return [df("island_lichen")]
-
-
-def overhang_light():
-    air = {"type": "minecraft:matching_blocks", "blocks": "minecraft:air"}
-    solid = {"type": "minecraft:solid"}
-    write("worldgen/configured_feature/overhang_light.json", {"type": "minecraft:simple_block", "config": {"to_place": {
-        "type": "minecraft:simple_state_provider",
-        "state": {"Name": "minecraft:light", "Properties": {"level": "15", "waterlogged": "false"}}}}})
-    roofed = {"type": "minecraft:any_of", "predicates": [dict(solid, offset=[0, k, 0]) for k in (5, 10, 15)]}
-    ceiling = ("up", -1, [air, dict(air, offset=[0, -6, 0]), dict(solid, offset=[0, 1, 0])])
-    scans = {"ceiling": ceiling,
-             "floor": ("down", 1, [air, dict(air, offset=[0, 4, 0]), dict(solid, offset=[0, -1, 0]), roofed])}
-    floors = {"type": "minecraft:matching_blocks", "blocks": [f"minecraft:{b}" for b in SHADOW_FLOORS], "offset": [0, -1, 0]}
-    scans["shadow"] = ("down", 1, [air, floors], layer_count(SHADOW_LIGHTS_PER_BLOCK, True),
-                       [{"type": "minecraft:surface_relative_threshold_filter", "heightmap": "WORLD_SURFACE_WG",
-                         "max_inclusive": -SHADOW_COVER}])
-    for name, (direction, step, preds, *extra) in scans.items():
-        count, filters = extra if extra else (layer_count(OVERHANG_LIGHTS_PER_BLOCK), [])
-        write(f"worldgen/placed_feature/overhang_light_{name}.json", {"feature": df("overhang_light"), "placement": [
-            count,
-            {"type": "minecraft:in_square"},
-            {"type": "minecraft:environment_scan", "direction_of_search": direction, "max_steps": 32,
-             "target_condition": solid, "allowed_search_condition": air},
-            {"type": "minecraft:random_offset", "xz_spread": 0, "y_spread": step},
-            *filters,
-            {"type": "minecraft:block_predicate_filter", "predicate": {"type": "minecraft:all_of", "predicates": preds}},
-            {"type": "minecraft:biome"}]})
-    return [df(f"overhang_light_{n}") for n in scans]
 
 
 LAYERED_PREFIXES = ("trees_", "patch_grass_", "flower_", "patch_tall_grass", "patch_large_fern", "patch_berry_",
@@ -344,7 +312,7 @@ if __name__ == "__main__":
     noise_settings()
     dimension_type()
     remap = layered_vegetation()
-    params, sources = biomes(remap, {8: island_lichen(), 10: overhang_light()})
+    params, sources = biomes(remap, {8: island_lichen()})
     world_preset(params)
     tags = biome_tags(sources)
     lang(sources)

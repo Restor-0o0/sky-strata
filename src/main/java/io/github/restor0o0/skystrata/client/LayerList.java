@@ -1,102 +1,81 @@
 package io.github.restor0o0.skystrata.client;
 
-import io.github.restor0o0.skystrata.Layer;
+import io.github.restor0o0.skystrata.Strata;
 import java.util.ArrayList;
 import java.util.List;
+import javax.annotation.Nullable;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.ContainerObjectSelectionList;
-import net.minecraft.client.gui.components.CycleButton;
-import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.components.events.GuiEventListener;
-import net.minecraft.client.gui.narration.NarratableEntry;
+import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.network.chat.Component;
 
-class LayerList extends ContainerObjectSelectionList<LayerList.Entry> {
-    private static final int ROW_WIDTH = 400;
-
+class LayerList extends ObjectSelectionList<LayerList.Entry> {
     private final StrataScreen screen;
 
-    LayerList(StrataScreen screen, Minecraft minecraft, int width, int height, int y) {
-        super(minecraft, width, height, y, 50);
+    LayerList(StrataScreen screen, Minecraft minecraft, int x, int y, int width, int height) {
+        super(minecraft, width, height, y, 16);
         this.screen = screen;
+        setX(x);
     }
 
-    void rebuild() {
+    void rebuild(int selected) {
+        List<Strata.Placed> placed = new Strata(screen.layers).placed();
         List<Entry> entries = new ArrayList<>();
-        for (int i = 0; i < screen.layers.size(); i++) entries.add(new Entry(i));
+        for (int i = 0; i < placed.size(); i++) entries.add(new Entry(i, placed.get(i)));
         replaceEntries(entries);
+        super.setSelected(selected >= 0 && selected < entries.size() ? entries.get(selected) : null);
+        if (getSelected() != null) ensureVisible(getSelected());
+    }
+
+    int selectedIndex() {
+        Entry e = getSelected();
+        return e == null ? -1 : e.index;
+    }
+
+    @Override
+    public void setSelected(@Nullable Entry entry) {
+        Entry old = getSelected();
+        super.setSelected(entry);
+        if (entry != old) screen.select(entry == null ? -1 : entry.index);
     }
 
     @Override
     public int getRowWidth() {
-        return ROW_WIDTH;
+        return width - 14;
     }
 
     @Override
     protected int getScrollbarPosition() {
-        return width / 2 + ROW_WIDTH / 2 + 8;
+        return getX() + width - 6;
     }
 
-    class Entry extends ContainerObjectSelectionList.Entry<Entry> {
+    class Entry extends ObjectSelectionList.Entry<Entry> {
         private final int index;
-        private final CycleButton<Layer.Kind> kind;
-        private final ValueSlider gap, thickness, density, size;
-        private final Button remove;
-        private final List<AbstractWidget> widgets;
+        private final Component name;
+        private final String range;
 
-        Entry(int index) {
+        Entry(int index, Strata.Placed p) {
             this.index = index;
-            Layer l = layer();
-            kind = CycleButton.builder((Layer.Kind k) -> Component.translatable("skystrata.kind." + k.getSerializedName()))
-                    .withValues(Layer.Kind.values()).withInitialValue(l.kind()).displayOnlyValue()
-                    .create(0, 0, 118, 20, Component.translatable("skystrata.layer.kind"),
-                            (b, k) -> screen.set(index, k.defaults().withGap(layer().gap()), true));
-            kind.setTooltip(Tooltip.create(Component.translatable("skystrata.layer.kind.tooltip")));
-            gap = new ValueSlider(130, "skystrata.layer.gap", Layer.MIN_GAP, Layer.MAX_GAP, 1, l.gap(), String::valueOf,
-                    v -> screen.set(index, layer().withGap(v), false));
-            thickness = new ValueSlider(128, "skystrata.layer.thickness", Layer.MIN_THICKNESS, Layer.MAX_THICKNESS, 1, l.thickness(),
-                    String::valueOf, v -> screen.set(index, layer().withThickness(v), false));
-            density = new ValueSlider(186, "skystrata.layer.density", 0, 100, 1, Math.round(l.density() * 100), v -> v + "%",
-                    v -> screen.set(index, layer().withDensity(v / 100f), false));
-            size = new ValueSlider(170, "skystrata.layer.size", Math.round(Layer.MIN_SIZE * 100), Math.round(Layer.MAX_SIZE * 100), 5,
-                    Math.round(l.size() * 100), v -> v + "%", v -> screen.set(index, layer().withSize(v / 100f), false));
-            remove = Button.builder(Component.literal("✕"), b -> screen.remove(index)).size(20, 20)
-                    .tooltip(Tooltip.create(Component.translatable("skystrata.button.remove"))).build();
-            widgets = List.of(kind, gap, thickness, density, size, remove);
-        }
-
-        private Layer layer() {
-            return screen.layers.get(index);
+            this.name = Component.literal((index + 1) + ". ")
+                    .append(Component.translatable("skystrata.kind." + p.layer().kind().getSerializedName()));
+            this.range = p.base() + "–" + p.top();
         }
 
         @Override
         public void render(GuiGraphics graphics, int idx, int top, int left, int width, int height, int mouseX, int mouseY,
                            boolean hovering, float partialTick) {
-            graphics.drawString(minecraft.font, (index + 1) + ".", left, top + 6, 0xFFFFFF);
-            place(kind, left + 16, top);
-            place(gap, left + 138, top);
-            place(thickness, left + 272, top);
-            place(density, left + 16, top + 24);
-            place(size, left + 206, top + 24);
-            place(remove, left + 380, top + 24);
-            for (AbstractWidget w : widgets) w.render(graphics, mouseX, mouseY, partialTick);
-        }
-
-        private static void place(AbstractWidget w, int x, int y) {
-            w.setPosition(x, y);
+            graphics.drawString(minecraft.font, name, left + 2, top + 3, 0xFFFFFF);
+            graphics.drawString(minecraft.font, range, left + width - 4 - minecraft.font.width(range), top + 3, 0xA0A0A0);
         }
 
         @Override
-        public List<? extends GuiEventListener> children() {
-            return widgets;
+        public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            return true;
         }
 
         @Override
-        public List<? extends NarratableEntry> narratables() {
-            return widgets;
+        public Component getNarration() {
+            return Component.translatable("narrator.select", name);
         }
     }
 }

@@ -10,7 +10,7 @@ By default the world has three layers:
 - **Dense sky layer** (y 305–375). Frequent large islands.
 - **Shards** (y 385–462). A sparse layer of small floating islands.
 
-The ocean and vanilla terrain stay below the giant islands. Trees and grass grow on every level. A few invisible light blocks are placed under overhangs and under floating islands, so the areas they shade are not pitch black.
+The ocean and vanilla terrain stay below the giant islands. Trees and grass grow on every level.
 
 ## Installation
 
@@ -26,7 +26,15 @@ Normal worlds are not affected. The mod does not override any vanilla worldgen f
 
 ## Configuring layers
 
-With **Sky Strata** selected, click **Customize** on the world creation screen. Up to 8 layers, from bottom to top. Each layer has:
+With **Sky Strata** selected, click **Customize** on the world creation screen. The **Preset** button cycles through ready-made layouts:
+
+- **Classic**: the default three layers described above.
+- **Archipelago**: no continents, two island layers with shards above them.
+- **Sky Tower**: five layers stacked up to y 699.
+- **Giants**: a single layer of huge continents.
+- **Shattered**: three sparse shard layers.
+
+The layer list on the left shows each layer's height range; select a layer to edit it on the right. Use **+**, **−**, **↑** and **↓** to add, remove and reorder layers. Up to 8 layers, from bottom to top. Each layer has:
 
 - **Type**: continents, islands or shards.
 - **Gap**: distance from the top of the previous layer to the bottom of this one. For the first layer it is counted from sea level (y 63). Negative values let layers overlap.
@@ -41,7 +49,6 @@ The world height grows automatically to fit the layers, up to y 2031. The settin
 - The world type has its own copies of the vanilla overworld biomes (`skystrata:forest`, `skystrata:plains`, …). These copies are added to the matching `minecraft:` and `c:` biome tags. Mods that add features, mobs or structures by biome tag work in them.
 - Mods that add new biomes through TerraBlender (Biomes O' Plenty, Terralith-as-mod, …) do not inject their biomes into this world type.
 - Mods that target vanilla biomes by ID instead of by tag do not apply here. Neither does the *Adventuring Time* advancement.
-- Light blocks are only placed under natural overhangs. Create contraptions assembled in those spots can pick them up.
 - Trees on the lower levels (under islands and overhangs) generate without bee nests and cocoa. The vanilla tree decorators for those crash when a tree gets no logs on a crowded layer. Trees on the topmost surface are unchanged.
 - The world is 528 blocks tall (y −64 … 463).
 
@@ -61,7 +68,6 @@ Tools for testing on a local server (`testserver/`, created by `setup_vanilla.py
 # accept the EULA in testserver/eula.txt and set level-type=skystrata\:sky_strata in server.properties first
 python tools/run_server.py <radius_chunks> <center_cx> <center_cz>   # pregenerate, report chunks/s
 python tools/render.py 528                                           # slices and top views into renders/
-python tools/light_stats.py                                          # light coverage under overhangs
 ```
 
 ## Translations
