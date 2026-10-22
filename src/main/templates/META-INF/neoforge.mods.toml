@@ -9,9 +9,13 @@ version="${mod_version}"
 displayName="${mod_name}"
 authors="${mod_authors}"
 displayURL="${mod_url}"
+logoFile="logo.png"
 description='''
 Giant floating continents over a forest floor, plus layers of sky islands. Adds a separate world type with configurable layers.
 '''
+
+[[mixins]]
+config="${mod_id}.mixins.json"
 
 [[dependencies.${mod_id}]]
 modId="neoforge"

@@ -1,12 +1,13 @@
-package io.github.restor0o0.skystrata.client;
+package io.github.restor0o0.skystrata;
 
-import io.github.restor0o0.skystrata.Layer;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import io.github.restor0o0.skystrata.Layer.Kind;
-import io.github.restor0o0.skystrata.Strata;
 import java.util.List;
+import java.util.Optional;
 
-record LayerPresets(String name, Strata strata) {
-    static final List<LayerPresets> ALL = List.of(
+public record LayerPresets(String name, Strata strata) {
+    public static final List<LayerPresets> ALL = List.of(
             new LayerPresets("classic", Strata.DEFAULT),
             new LayerPresets("archipelago", of(
                     new Layer(Kind.ISLANDS, 30, 70, 0.5f, 1.5f),
@@ -24,11 +25,20 @@ record LayerPresets(String name, Strata strata) {
                     new Layer(Kind.SHARDS, 20, 77, 0.3f, 1.5f),
                     new Layer(Kind.SHARDS, 20, 77, 0.25f, 0.75f))));
 
+    public static final Codec<LayerPresets> CODEC = Codec.STRING.comapFlatMap(
+            name -> byName(name).map(DataResult::success).orElseGet(() -> DataResult.error(() -> "Unknown preset " + name + ", expected one of "
+                    + ALL.stream().map(LayerPresets::name).toList())),
+            LayerPresets::name);
+
     private static Strata of(Layer... layers) {
         return new Strata(List.of(layers));
     }
 
-    static int indexOf(List<Layer> layers) {
+    public static Optional<LayerPresets> byName(String name) {
+        return ALL.stream().filter(p -> p.name.equals(name)).findFirst();
+    }
+
+    public static int indexOf(List<Layer> layers) {
         for (int i = 0; i < ALL.size(); i++) if (ALL.get(i).strata().layers().equals(layers)) return i;
         return -1;
     }

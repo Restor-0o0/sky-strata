@@ -27,7 +27,36 @@ jobs:
         with:
           name: sky-strata
           path: build/libs/*.jar
-      - if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
+
+      - name: Read version and changelog
+        if: startsWith(github.ref, 'refs/tags/v')
+        id: release
+        run: |
+          version=$(sed -n 's/^mod_version=//p' gradle.properties)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match mod_version=$version" >&2
+            exit 1
+          fi
+          awk -v v="$version" '/^## /{p = ($2 == v)} p && !/^## /' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "CHANGELOG.md has no section for $version" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Publish
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: Kira-NT/mc-publish@v3.3
         with:
-          files: build/libs/*.jar
+          modrinth-id: ${{ vars.MODRINTH_ID }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          curseforge-id: ${{ vars.CURSEFORGE_ID }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          files: build/libs/skystrata-${{ steps.release.outputs.version }}.jar
+          name: Sky Strata ${{ steps.release.outputs.version }}
+          version: ${{ steps.release.outputs.version }}
+          version-type: release
+          changelog-file: release-notes.md
+          loaders: neoforge
+          game-versions: 1.21.1
+          java: 21

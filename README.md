@@ -1,5 +1,7 @@
 # Sky Strata
 
+<img src="docs/icon.png" alt="" width="128" align="right">
+
 A world type for Minecraft 1.21.1 built for airships. If you play with Create Aeronautics or similar mods, you will need them to get anywhere.
 
 ![layers](docs/layers.png)
@@ -14,15 +16,41 @@ The ocean and vanilla terrain stay below the giant islands. Trees and grass grow
 
 ## Installation
 
-Requires NeoForge for 1.21.1. Put `skystrata-<version>.jar` into `mods/`.
+Requires NeoForge for 1.21.1. Download it from [Modrinth](https://modrinth.com/mod/sky-strata), [CurseForge](https://www.curseforge.com/minecraft/mc-mods/sky-strata) or [GitHub Releases](https://github.com/Restor-0o0/sky-strata/releases) and put `skystrata-<version>.jar` into `mods/`. Install it on both the server and the clients.
 
-When creating a world, click **World Type** and pick **Sky Strata**. For a dedicated server, set this in `server.properties` (the server uses the default layers):
+When creating a world, click **World Type** and pick **Sky Strata**.
+
+Normal worlds are not affected. The mod does not override any vanilla worldgen file.
+
+### Dedicated server
+
+Set this in `server.properties` before the world is created:
 
 ```
 level-type=skystrata\:sky_strata
 ```
 
-Normal worlds are not affected. The mod does not override any vanilla worldgen file.
+On first start the server writes `config/skystrata.json` with the default layers:
+
+```json
+{
+  "preset": "classic"
+}
+```
+
+Set `preset` to `classic`, `archipelago`, `tower`, `giants` or `shattered`, or replace it with your own list of layers (fields as in [Configuring layers](#configuring-layers); `size` is optional and defaults to 1):
+
+```json
+{
+  "layers": [
+    { "kind": "continents", "gap": 32, "thickness": 160, "density": 0.54, "size": 1.0 },
+    { "kind": "islands", "gap": 50, "thickness": 70, "density": 0.45 },
+    { "kind": "shards", "gap": 10, "thickness": 77, "density": 0.26 }
+  ]
+}
+```
+
+The file is read only when a new world is created. To apply changes, delete the world folder or set a new `level-name`.
 
 ## Configuring layers
 
@@ -50,7 +78,7 @@ The world height grows automatically to fit the layers, up to y 2031. The settin
 - Mods that add new biomes through TerraBlender (Biomes O' Plenty, Terralith-as-mod, …) do not inject their biomes into this world type.
 - Mods that target vanilla biomes by ID instead of by tag do not apply here. Neither does the *Adventuring Time* advancement.
 - Trees on the lower levels (under islands and overhangs) generate without bee nests and cocoa. The vanilla tree decorators for those crash when a tree gets no logs on a crowded layer. Trees on the topmost surface are unchanged.
-- The world is 528 blocks tall (y −64 … 463).
+- With the default layers the world is 528 blocks tall (y −64 … 463).
 
 ## Building
 
@@ -73,6 +101,15 @@ python tools/render.py 528                                           # slices an
 ## Translations
 
 The mod's strings live in `lang/<code>.json` (English, Russian, Ukrainian, German, French, Spanish, Brazilian Portuguese, Polish, Italian, Turkish, Simplified and Traditional Chinese, Japanese, Korean). To add a language, copy `lang/en_us.json` to the new language code, translate it and rerun `setup_vanilla.py` and `build.py`; biome names come from the game's own translations.
+
+## Releasing
+
+Pushing a tag `v<mod_version>` builds the jar and publishes it to GitHub Releases, Modrinth and CurseForge. The release notes come from the matching section of [CHANGELOG.md](CHANGELOG.md). The repository needs these settings (Settings → Secrets and variables → Actions):
+
+- variables `MODRINTH_ID` and `CURSEFORGE_ID`: the project IDs;
+- secrets `MODRINTH_TOKEN` (a Modrinth PAT with the *Create versions* scope) and `CURSEFORGE_TOKEN` (an API token from CurseForge account settings).
+
+A platform whose token is missing is skipped.
 
 ## License
 

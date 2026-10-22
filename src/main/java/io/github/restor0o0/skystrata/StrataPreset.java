@@ -46,7 +46,8 @@ public final class StrataPreset {
         if (!(Strata.unwrap(r.finalDensity()) instanceof StrataDensity density)
                 || !(Strata.unwrap(r.depth()) instanceof StrataBiomeDepth depth)) return dims;
         int height = Math.max(MIN_NOISE_HEIGHT, strata.requiredHeight());
-        Holder<DimensionType> type = dimensionType(access, height).orElseThrow();
+        Holder<DimensionType> type = dimensionType(access, height).orElseThrow(() -> new IllegalStateException(
+                "Sky Strata layers need a world height of " + height + ", the maximum is " + maxHeight(access)));
 
         Holder<NoiseGeneratorSettings> settings = base;
         if (!strata.equals(density.strata()) || height > s.noiseSettings().height()) {

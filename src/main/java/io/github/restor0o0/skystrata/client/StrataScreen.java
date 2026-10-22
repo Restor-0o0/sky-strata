@@ -1,6 +1,7 @@
 package io.github.restor0o0.skystrata.client;
 
 import io.github.restor0o0.skystrata.Layer;
+import io.github.restor0o0.skystrata.LayerPresets;
 import io.github.restor0o0.skystrata.Strata;
 import io.github.restor0o0.skystrata.StrataPreset;
 import java.util.ArrayList;
