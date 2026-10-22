@@ -104,10 +104,7 @@ The mod's strings live in `lang/<code>.json` (English, Russian, Ukrainian, Germa
 
 ## Releasing
 
-Pushing a tag `v<mod_version>` builds the jar and publishes it to GitHub Releases, Modrinth and CurseForge. The release notes come from the matching section of [CHANGELOG.md](CHANGELOG.md). The repository needs these settings (Settings → Secrets and variables → Actions):
-
-- variables `MODRINTH_ID` and `CURSEFORGE_ID`: the project IDs;
-- secrets `MODRINTH_TOKEN` (a Modrinth PAT with the *Create versions* scope) and `CURSEFORGE_TOKEN` (an API token from CurseForge account settings).
+Pushing a tag `v<mod_version>` builds the jar and publishes it to GitHub Releases, Modrinth and CurseForge. The release notes come from the matching section of [CHANGELOG.md](CHANGELOG.md). The repository needs two secrets (Settings → Secrets and variables → Actions): `MODRINTH_TOKEN` (a Modrinth PAT with the *Create versions* scope) and `CURSEFORGE_TOKEN` (an API token from CurseForge account settings).
 
 A platform whose token is missing is skipped.
 

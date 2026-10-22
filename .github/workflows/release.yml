@@ -47,9 +47,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: Kira-NT/mc-publish@v3.3
         with:
-          modrinth-id: ${{ vars.MODRINTH_ID }}
+          modrinth-id: 3C0zq5bG
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
-          curseforge-id: ${{ vars.CURSEFORGE_ID }}
+          curseforge-id: 1759792
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           files: build/libs/skystrata-${{ steps.release.outputs.version }}.jar
