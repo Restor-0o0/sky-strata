@@ -2,7 +2,7 @@ name: build
 
 on:
   push:
-    branches: [main]
+    branches: [main, "1.20.1"]
     tags: ["v*"]
   pull_request:
 
@@ -19,7 +19,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "17"
       - run: python setup_vanilla.py
       - run: python build.py
       - run: chmod +x gradlew && ./gradlew build --no-daemon
@@ -57,6 +57,6 @@ jobs:
           version: ${{ steps.release.outputs.version }}
           version-type: release
           changelog-file: release-notes.md
-          loaders: neoforge
-          game-versions: 1.21.1
-          java: 21
+          loaders: forge
+          game-versions: 1.20.1
+          java: 17

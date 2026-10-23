@@ -13,9 +13,11 @@ class LayerList extends ObjectSelectionList<LayerList.Entry> {
     private final StrataScreen screen;
 
     LayerList(StrataScreen screen, Minecraft minecraft, int x, int y, int width, int height) {
-        super(minecraft, width, height, y, 16);
+        super(minecraft, width, height, y, y + height, 16);
         this.screen = screen;
-        setX(x);
+        setLeftPos(x);
+        setRenderBackground(false);
+        setRenderTopAndBottom(false);
     }
 
     void rebuild(int selected) {
@@ -46,7 +48,7 @@ class LayerList extends ObjectSelectionList<LayerList.Entry> {
 
     @Override
     protected int getScrollbarPosition() {
-        return getX() + width - 6;
+        return x0 + width - 6;
     }
 
     class Entry extends ObjectSelectionList.Entry<Entry> {
@@ -70,6 +72,7 @@ class LayerList extends ObjectSelectionList<LayerList.Entry> {
 
         @Override
         public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            LayerList.this.setSelected(this);
             return true;
         }
 

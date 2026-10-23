@@ -1,7 +1,6 @@
 package io.github.restor0o0.skystrata;
 
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +13,7 @@ import net.minecraft.world.level.levelgen.placement.PlacementModifier;
 import net.minecraft.world.level.levelgen.placement.PlacementModifierType;
 
 public class LayerCountPlacement extends PlacementModifier {
-    public static final MapCodec<LayerCountPlacement> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+    public static final Codec<LayerCountPlacement> CODEC = RecordCodecBuilder.create(i -> i.group(
             Codec.floatRange(0, 16).fieldOf("per_block").forGetter(p -> p.perBlock),
             Codec.BOOL.optionalFieldOf("from_ground", false).forGetter(p -> p.fromGround)
     ).apply(i, LayerCountPlacement::new));

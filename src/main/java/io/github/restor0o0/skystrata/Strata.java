@@ -1,6 +1,7 @@
 package io.github.restor0o0.skystrata;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -15,7 +16,13 @@ public record Strata(List<Layer> layers) {
     public static final int MAX_LAYERS = 8;
     public static final Strata DEFAULT = new Strata(List.of(
             Layer.Kind.CONTINENTS.defaults(), Layer.Kind.ISLANDS.defaults(), Layer.Kind.SHARDS.defaults()));
-    public static final Codec<Strata> CODEC = Layer.CODEC.listOf(0, MAX_LAYERS).xmap(Strata::new, Strata::layers);
+    public static final Codec<Strata> CODEC = Layer.CODEC.listOf().flatXmap(Strata::sized, Strata::sized)
+            .xmap(Strata::new, Strata::layers);
+
+    private static DataResult<List<Layer>> sized(List<Layer> layers) {
+        return layers.size() <= MAX_LAYERS ? DataResult.success(layers)
+                : DataResult.error(() -> "At most " + MAX_LAYERS + " layers are allowed, got " + layers.size());
+    }
 
     public Strata {
         layers = List.copyOf(layers);
@@ -45,7 +52,7 @@ public record Strata(List<Layer> layers) {
     }
 
     public int requiredHeight() {
-        return Math.ceilDiv(maxY() + 1 - MIN_Y, 16) * 16;
+        return Math.floorDiv(maxY() + 16 - MIN_Y, 16) * 16;
     }
 
     public int skyBiomesFrom() {

@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import net.neoforged.fml.loading.FMLPaths;
+import net.minecraftforge.fml.loading.FMLPaths;
 import org.slf4j.Logger;
 
 public final class ServerConfig {
@@ -30,14 +30,16 @@ public final class ServerConfig {
         Path path = path();
         try {
             if (Files.notExists(path)) {
-                JsonElement json = CODEC.encodeStart(JsonOps.INSTANCE, Either.left(LayerPresets.ALL.getFirst())).getOrThrow();
+                JsonElement json = CODEC.encodeStart(JsonOps.INSTANCE, Either.left(LayerPresets.ALL.get(0))).result().orElseThrow();
                 Files.createDirectories(path.getParent());
                 Files.writeString(path, new GsonBuilder().setPrettyPrinting().create().toJson(json) + "\n");
                 LOGGER.info("Created {}", path);
             }
             JsonElement json = JsonParser.parseString(Files.readString(path));
             Strata strata = CODEC.parse(JsonOps.INSTANCE, json)
-                    .getOrThrow(error -> new IllegalStateException("Invalid " + path + ": " + error))
+                    .getOrThrow(false, error -> {
+                        throw new IllegalStateException("Invalid " + path + ": " + error);
+                    })
                     .map(LayerPresets::strata, s -> s);
             LOGGER.info("Generating Sky Strata layers from {}: {}", path, strata.layers());
             return strata;

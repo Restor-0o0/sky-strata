@@ -1,8 +1,6 @@
 package io.github.restor0o0.skystrata;
 
 import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Optional;
 import net.minecraft.core.Holder;
 import net.minecraft.core.RegistryAccess;
@@ -60,8 +58,6 @@ public final class StrataPreset {
                     s.spawnTarget(), s.seaLevel(), s.disableMobGeneration(), s.aquifersEnabled(), s.oreVeinsEnabled(), s.useLegacyRandomSource()));
         }
         ChunkGenerator generator = new NoiseBasedChunkGenerator(gen.getBiomeSource(), settings);
-        Map<ResourceKey<LevelStem>, LevelStem> map = new LinkedHashMap<>(dims.dimensions());
-        map.put(LevelStem.OVERWORLD, new LevelStem(type, generator));
-        return new WorldDimensions(map);
+        return new WorldDimensions(WorldDimensions.withOverworld(dims.dimensions(), type, generator));
     }
 }

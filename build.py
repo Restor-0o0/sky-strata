@@ -265,8 +265,9 @@ def biome_tags(sources):
     for name, src in sources.items():
         by_src.setdefault(f"minecraft:{src}", []).append(name)
     n = 0
-    for ns, base in (("minecraft", VAN / "tags" / "worldgen" / "biome"),
-                     ("c", REF / "neoforge" / "data" / "c" / "tags" / "worldgen" / "biome")):
+    roots = [("minecraft", VAN / "tags" / "worldgen" / "biome")]
+    roots += [(d.name, d / "tags" / "worldgen" / "biome") for d in sorted((REF / "loader" / "data").iterdir())]
+    for ns, base in roots:
         for f in sorted(base.rglob("*.json")):
             rel = f.relative_to(base).as_posix()
             ids = [v if isinstance(v, str) else v["id"] for v in json.loads(f.read_text(encoding="utf-8"))["values"]]
