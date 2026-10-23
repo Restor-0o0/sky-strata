@@ -1,4 +1,5 @@
 import json
+import math
 import shutil
 import sys
 from pathlib import Path
@@ -44,19 +45,19 @@ def df(name):
 
 
 def add(a, b):
-    return {"type": "minecraft:add", "argument1": a, "argument2": b}
+    return {"type": "minecraft:add", "left": a, "right": b}
 
 
 def mul(a, b):
-    return {"type": "minecraft:mul", "argument1": a, "argument2": b}
+    return {"type": "minecraft:mul", "left": a, "right": b}
 
 
 def mn(a, b):
-    return {"type": "minecraft:min", "argument1": a, "argument2": b}
+    return {"type": "minecraft:min", "left": a, "right": b}
 
 
 def mx(a, b):
-    return {"type": "minecraft:max", "argument1": a, "argument2": b}
+    return {"type": "minecraft:max", "left": a, "right": b}
 
 
 def clamp(x, lo, hi):
@@ -68,17 +69,31 @@ def noise(n, xz=1.0, y=0.0):
 
 
 def flat(x):
-    return {"type": "minecraft:flat_cache", "argument": {"type": "minecraft:cache_2d", "argument": x}}
+    return {"type": "minecraft:cache", "input": x}
 
 
 def grad(fy, fv, ty, tv):
-    return {"type": "minecraft:y_clamped_gradient", "from_y": fy, "from_value": fv, "to_y": ty, "to_value": tv}
+    return {"type": "minecraft:gradient", "axis": "y", "from_coordinate": fy, "from_value": fv, "to_coordinate": ty, "to_value": tv}
 
 
 def yrange(lo, hi, inside, outside):
-    return {"type": "minecraft:range_choice", "input": "minecraft:y",
+    return {"type": "minecraft:range_choice", "input": grad(-4064, -4064, 4062, 4062),
             "min_inclusive": lo, "max_exclusive": hi,
             "when_in_range": inside, "when_out_of_range": outside}
+
+
+def parity_amplitude(amps):
+    a = 2 ** (len(amps) - 1) / (2 ** len(amps) - 1)
+    octaves = []
+    for m in amps:
+        if m:
+            octaves.append(a * m)
+        a *= 0.5
+    deviation = math.sqrt(sum((0.2702247831245211 * o) ** 2 for o in octaves)) * math.sqrt(2)
+    new = sum(octaves) / 3 / deviation
+    nz = [i for i, m in enumerate(amps) if m]
+    old = 0.5 / 3 / (0.1 * (1 + 1 / (nz[-1] - nz[0] + 1)))
+    return old / new
 
 
 def noises():
@@ -91,7 +106,10 @@ def noises():
         "isl_detail": (-4, [1.0, 0.5]),
     }
     for name, (oct_, amps) in defs.items():
-        write(f"worldgen/noise/{name}.json", {"firstOctave": oct_, "amplitudes": amps})
+        n = {"base_amplitude": parity_amplitude(amps), "base_octave": oct_, "octave_count": len(amps)}
+        if any(a != 1.0 for a in amps):
+            n["amplitude_modifiers"] = amps
+        write(f"worldgen/noise/{name}.json", n)
 
 
 def density_functions():
@@ -112,10 +130,10 @@ def layer_count(per_block, from_ground=False):
 
 
 def island_lichen():
-    cf = load("worldgen/configured_feature/glow_lichen.json")
-    cf["config"].update(search_range=24, chance_of_spreading=1.0)
-    cf["config"]["can_be_placed_on"] += ["minecraft:dirt", "minecraft:coarse_dirt"]
-    write("worldgen/configured_feature/island_lichen.json", cf)
+    cf = load("worldgen/feature/glow_lichen.json")
+    cf.update(search_range=24, chance_of_spreading=1.0)
+    cf["can_be_placed_on"] += ["minecraft:dirt", "minecraft:coarse_dirt"]
+    write("worldgen/feature/island_lichen.json", cf)
     write("worldgen/placed_feature/island_lichen.json", {"feature": df("island_lichen"), "placement": [
         layer_count(LICHEN_PER_BLOCK, True),
         {"type": "minecraft:in_square"},
@@ -151,20 +169,25 @@ class SafeCopies:
         return self.done[key]
 
     def placed(self, pf):
-        return dict(pf, feature=self.ref("configured_feature", pf["feature"], self.configured))
+        return dict(pf, feature=self.ref("feature", pf["feature"], self.configured))
+
+    def entry(self, e):
+        for key in ("chance", "weight"):
+            if isinstance(e, dict) and key in e:
+                inner = "feature" if key == "chance" else "data"
+                return dict(e, **{inner: self.ref("placed_feature", e[inner], self.placed)})
+        return self.ref("placed_feature", e, self.placed)
 
     def configured(self, cf):
-        cf = json.loads(json.dumps(cf))
-        c = cf.get("config", {})
-        if cf["type"] == "minecraft:tree":
+        c = json.loads(json.dumps(cf))
+        if c["type"] == "minecraft:tree":
             c["decorators"] = [d for d in c.get("decorators", []) if d["type"] not in UNSAFE_DECORATORS]
         for key in ("default", "feature_true", "feature_false", "feature"):
             if key in c:
                 c[key] = self.ref("placed_feature", c[key], self.placed)
         if "features" in c:
-            c["features"] = [dict(e, feature=self.ref("placed_feature", e["feature"], self.placed)) if isinstance(e, dict) and "chance" in e
-                             else self.ref("placed_feature", e, self.placed) for e in c["features"]]
-        return cf
+            c["features"] = [self.entry(e) for e in c["features"]]
+        return c
 
 
 def layered_vegetation():
@@ -203,8 +226,8 @@ def retarget(obj):
     s = s.replace("minecraft:overworld/sloped_cheese", df("sloped_cheese"))
     s = s.replace("minecraft:overworld/depth", df("depth"))
     s = s.replace('"minecraft:overworld/offset"', f'"{df("offset")}"')
-    s = s.replace('"from_y": 240', f'"from_y": {TERRAIN_TOP_SLIDE[0]}')
-    s = s.replace('"to_y": 256', f'"to_y": {TERRAIN_TOP_SLIDE[1]}')
+    s = s.replace('"from_coordinate": 240', f'"from_coordinate": {TERRAIN_TOP_SLIDE[0]}')
+    s = s.replace('"to_coordinate": 256', f'"to_coordinate": {TERRAIN_TOP_SLIDE[1]}')
     return json.loads(s)
 
 
@@ -214,11 +237,20 @@ def noise_settings():
     ns["noise"]["height"] = HEIGHTS[0]
     r = ns["noise_router"]
 
-    write("worldgen/density_function/terrain.json", yrange(MIN_Y, TERRAIN_TOP_SLIDE[1] + 8, retarget(r["final_density"]), -1.0))
+    final = retarget(load("worldgen/density_function/overworld/final_density.json"))
+    write("worldgen/density_function/terrain.json", yrange(MIN_Y, TERRAIN_TOP_SLIDE[1] + 8, final, -1.0))
     r["final_density"] = {"type": f"{NS}:strata", "terrain": df("terrain"), "land": df("land")}
 
-    r["fluid_level_floodedness"] = yrange(MIN_Y, DRY_ABOVE_Y, r["fluid_level_floodedness"], -1.0)
-    r["preliminary_surface_level"] = retarget(r["preliminary_surface_level"])
+    write("worldgen/density_function/preliminary_surface_level.json",
+          retarget(load("worldgen/density_function/overworld/preliminary_surface_level.json")))
+    csl = load("worldgen/density_function/overworld/chunk_surface_level.json")
+    csl["input"] = df("preliminary_surface_level")
+    write("worldgen/density_function/chunk_surface_level.json", csl)
+    r["chunk_surface_level"] = df("chunk_surface_level")
+
+    aq = ns["aquifers"]
+    aq["fluid_level_floodedness"] = yrange(MIN_Y, DRY_ABOVE_Y, aq["fluid_level_floodedness"], -1.0)
+    aq["surface_level"] = df("preliminary_surface_level")
 
     r["depth"] = {"type": f"{NS}:strata_biome_depth", "fallback": df("biome_depth")}
     write(f"worldgen/noise_settings/{PRESET}.json", ns)

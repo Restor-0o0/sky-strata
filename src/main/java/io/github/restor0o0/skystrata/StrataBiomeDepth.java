@@ -2,17 +2,18 @@ package io.github.restor0o0.skystrata;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.util.KeyDispatchDataCodec;
-import net.minecraft.world.level.levelgen.DensityFunction;
-import net.minecraft.world.level.levelgen.DensityFunctions;
+import net.minecraft.util.Interval;
+import net.minecraft.world.level.levelgen.densityfunction.DensityFunction;
+import net.minecraft.world.level.levelgen.densityfunction.DensityFunctions;
+import net.minecraft.world.level.levelgen.densityfunction.DensitySampler;
+import net.minecraft.world.level.levelgen.densityfunction.DfRewriteRule;
 
 public final class StrataBiomeDepth implements DensityFunction {
     public static final MapCodec<StrataBiomeDepth> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
             Strata.CODEC.optionalFieldOf("layers", Strata.DEFAULT).forGetter(StrataBiomeDepth::strata),
             DensityFunction.CODEC.fieldOf("fallback").forGetter(StrataBiomeDepth::fallback)
     ).apply(i, StrataBiomeDepth::new));
-    private static final KeyDispatchDataCodec<StrataBiomeDepth> KEY_CODEC = KeyDispatchDataCodec.of(CODEC);
-    private static final double SKY_DEPTH = -2.0;
+    private static final float SKY_DEPTH = -2.0f;
 
     private final Strata strata;
     private final DensityFunction fallback;
@@ -42,32 +43,28 @@ public final class StrataBiomeDepth implements DensityFunction {
     }
 
     @Override
-    public double compute(FunctionContext context) {
-        return inner.compute(context);
+    public DensitySampler compileSampler(CompileContext context) {
+        return inner.compileSampler(context);
     }
 
     @Override
-    public void fillArray(double[] array, ContextProvider provider) {
-        inner.fillArray(array, provider);
+    public DensityFunction rewriteChildren(DfRewriteRule rule) {
+        DensityFunction rewritten = rule.rewrite(inner);
+        return rewritten == inner ? this : new StrataBiomeDepth(strata, fallback, rewritten);
     }
 
     @Override
-    public DensityFunction mapChildren(Visitor visitor) {
-        return new StrataBiomeDepth(strata, fallback, visitor.apply(inner));
+    public Interval range() {
+        return inner.range();
     }
 
     @Override
-    public double minValue() {
-        return inner.minValue();
+    public @Axes int domainAxes() {
+        return inner.domainAxes();
     }
 
     @Override
-    public double maxValue() {
-        return inner.maxValue();
-    }
-
-    @Override
-    public KeyDispatchDataCodec<? extends DensityFunction> codec() {
-        return KEY_CODEC;
+    public MapCodec<? extends DensityFunction> codec() {
+        return CODEC;
     }
 }

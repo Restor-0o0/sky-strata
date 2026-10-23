@@ -5,15 +5,13 @@ import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
+import java.util.function.Consumer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.levelgen.placement.PlacementContext;
 import net.minecraft.world.level.levelgen.placement.PlacementModifier;
-import net.minecraft.world.level.levelgen.placement.PlacementModifierType;
 
-public class LayerCountPlacement extends PlacementModifier {
+public class LayerCountPlacement implements PlacementModifier {
     public static final MapCodec<LayerCountPlacement> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
             Codec.floatRange(0, 16).fieldOf("per_block").forGetter(p -> p.perBlock),
             Codec.BOOL.optionalFieldOf("from_ground", false).forGetter(p -> p.fromGround)
@@ -28,9 +26,9 @@ public class LayerCountPlacement extends PlacementModifier {
     }
 
     @Override
-    public Stream<BlockPos> getPositions(PlacementContext context, RandomSource random, BlockPos pos) {
+    public void modify(PlacementContext context, RandomSource random, BlockPos pos, Consumer<BlockPos> output) {
         Strata strata = Strata.of(context.generator());
-        if (strata == null) return Stream.empty();
+        if (strata == null) return;
         int lo = context.getMinGenY(), hi = lo + context.getGenDepth() - 1;
         List<int[]> bands = new ArrayList<>();
         int total = 0;
@@ -41,22 +39,23 @@ public class LayerCountPlacement extends PlacementModifier {
                 total += to - from;
             }
         }
-        if (total == 0) return Stream.empty();
+        if (total == 0) return;
         double expected = perBlock * total;
         int count = (int) expected + (random.nextDouble() < expected % 1 ? 1 : 0);
-        int sum = total;
-        return IntStream.range(0, count).mapToObj(n -> {
-            int r = random.nextInt(sum);
+        for (int n = 0; n < count; n++) {
+            int r = random.nextInt(total);
             for (int[] b : bands) {
-                if (r < b[1] - b[0]) return pos.atY(b[0] + r);
+                if (r < b[1] - b[0]) {
+                    output.accept(pos.atY(b[0] + r));
+                    break;
+                }
                 r -= b[1] - b[0];
             }
-            return pos;
-        });
+        }
     }
 
     @Override
-    public PlacementModifierType<?> type() {
-        return SkyStrata.LAYER_COUNT.get();
+    public MapCodec<LayerCountPlacement> codec() {
+        return CODEC;
     }
 }

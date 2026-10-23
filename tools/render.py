@@ -57,7 +57,7 @@ def chunks(path):
 def section_blocks(sec):
     bs = sec.get("block_states")
     if not bs: return None
-    pal = [p["Name"] for p in bs["palette"]]
+    pal = [p if isinstance(p, str) else p.get("id", p.get("")) for p in bs["palette"]]
     if "data" not in bs: return np.zeros(4096, np.int32), pal
     bits = max(4, (len(pal) - 1).bit_length())
     per = 64 // bits

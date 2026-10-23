@@ -24,6 +24,6 @@ On a dedicated server set `level-type=skystrata\:sky_strata` in `server.properti
 - The world type uses its own copies of the vanilla biomes, added to the matching `minecraft:` and `c:` biome tags. Mods that add features, mobs or structures by biome tag work in them.
 - Biomes from TerraBlender mods (Biomes O' Plenty and others) do not appear in this world type.
 
-Available for NeoForge 1.21.1, Forge 1.20.1 and NeoForge 26.1. Install on both the server and the clients.
+Available for NeoForge 1.21.1, Forge 1.20.1 and NeoForge 26.1, 26.2 and 26.3. Install on both the server and the clients.
 
 [Source and issues on GitHub](https://github.com/Restor-0o0/sky-strata)

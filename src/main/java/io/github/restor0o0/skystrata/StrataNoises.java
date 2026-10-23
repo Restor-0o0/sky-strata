@@ -8,9 +8,9 @@ import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.levelgen.synth.NormalNoise;
 
-public record StrataNoises(Holder<NormalNoise.NoiseParameters> giant, Holder<NormalNoise.NoiseParameters> giantTop,
-                           Holder<NormalNoise.NoiseParameters> dense, Holder<NormalNoise.NoiseParameters> denseMask,
-                           Holder<NormalNoise.NoiseParameters> sparse, Holder<NormalNoise.NoiseParameters> detail) {
+public record StrataNoises(Holder<NormalNoise> giant, Holder<NormalNoise> giantTop,
+                           Holder<NormalNoise> dense, Holder<NormalNoise> denseMask,
+                           Holder<NormalNoise> sparse, Holder<NormalNoise> detail) {
     public static final MapCodec<StrataNoises> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
             RegistryOps.retrieveElement(key("isl_giant")),
             RegistryOps.retrieveElement(key("isl_giant_top")),
@@ -20,7 +20,7 @@ public record StrataNoises(Holder<NormalNoise.NoiseParameters> giant, Holder<Nor
             RegistryOps.retrieveElement(key("isl_detail"))
     ).apply(i, StrataNoises::new));
 
-    private static ResourceKey<NormalNoise.NoiseParameters> key(String name) {
+    private static ResourceKey<NormalNoise> key(String name) {
         return ResourceKey.create(Registries.NOISE, SkyStrata.id(name));
     }
 }

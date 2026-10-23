@@ -51,13 +51,11 @@ public final class StrataPreset {
 
         Holder<NoiseGeneratorSettings> settings = base;
         if (!strata.equals(density.strata()) || height > s.noiseSettings().height()) {
-            NoiseRouter router = new NoiseRouter(r.barrierNoise(), r.fluidLevelFloodednessNoise(), r.fluidLevelSpreadNoise(), r.lavaNoise(),
-                    r.temperature(), r.vegetation(), r.continents(), r.erosion(), depth.withStrata(strata), r.ridges(),
-                    r.preliminarySurfaceLevel(), density.withStrata(strata), r.veinToggle(), r.veinRidged(), r.veinGap());
-            NoiseSettings ns = s.noiseSettings();
-            NoiseSettings noise = new NoiseSettings(ns.minY(), Math.min(height, type.value().height()), ns.noiseSizeHorizontal(), ns.noiseSizeVertical());
-            settings = Holder.direct(new NoiseGeneratorSettings(noise, s.defaultBlock(), s.defaultFluid(), router, s.surfaceRule(),
-                    s.spawnTarget(), s.seaLevel(), s.disableMobGeneration(), s.aquifersEnabled(), s.oreVeinsEnabled(), s.useLegacyRandomSource()));
+            NoiseRouter router = new NoiseRouter(r.temperature(), r.vegetation(), r.continents(), r.erosion(),
+                    depth.withStrata(strata), r.ridges(), r.chunkSurfaceLevel(), density.withStrata(strata));
+            NoiseSettings noise = new NoiseSettings(s.noiseSettings().minY(), Math.min(height, type.value().height()));
+            settings = Holder.direct(new NoiseGeneratorSettings(noise, s.defaultBlock(), s.defaultFluid(), router, s.materialRule(),
+                    s.spawnTarget(), s.seaLevel(), s.disableMobGeneration(), s.aquifers(), s.useLegacyRandomSource(), s.debugFunctions()));
         }
         ChunkGenerator generator = new NoiseBasedChunkGenerator(gen.getBiomeSource(), settings);
         Map<ResourceKey<LevelStem>, LevelStem> map = new LinkedHashMap<>(dims.dimensions());

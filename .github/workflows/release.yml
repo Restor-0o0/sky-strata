@@ -2,7 +2,7 @@ name: build
 
 on:
   push:
-    branches: [main, "26.2"]
+    branches: [main, "26.3"]
     tags: ["v*"]
   pull_request:
 
@@ -58,5 +58,5 @@ jobs:
           version-type: release
           changelog-file: release-notes.md
           loaders: neoforge
-          game-versions: 26.2
+          game-versions: 26.3
           java: 25

@@ -1,11 +1,5 @@
 package io.github.restor0o0.skystrata;
 
-import static net.minecraft.world.level.levelgen.DensityFunctions.add;
-import static net.minecraft.world.level.levelgen.DensityFunctions.constant;
-import static net.minecraft.world.level.levelgen.DensityFunctions.max;
-import static net.minecraft.world.level.levelgen.DensityFunctions.min;
-import static net.minecraft.world.level.levelgen.DensityFunctions.mul;
-
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.ArrayList;
@@ -13,9 +7,11 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import net.minecraft.core.Holder;
-import net.minecraft.util.KeyDispatchDataCodec;
-import net.minecraft.world.level.levelgen.DensityFunction;
-import net.minecraft.world.level.levelgen.DensityFunctions;
+import net.minecraft.util.Interval;
+import net.minecraft.world.level.levelgen.densityfunction.DensityFunction;
+import net.minecraft.world.level.levelgen.densityfunction.DensityFunctions;
+import net.minecraft.world.level.levelgen.densityfunction.DensitySampler;
+import net.minecraft.world.level.levelgen.densityfunction.DfRewriteRule;
 import net.minecraft.world.level.levelgen.synth.NormalNoise;
 
 public final class StrataDensity implements DensityFunction {
@@ -25,9 +21,8 @@ public final class StrataDensity implements DensityFunction {
             DensityFunction.CODEC.fieldOf("land").forGetter(StrataDensity::land),
             StrataNoises.CODEC.forGetter(StrataDensity::noises)
     ).apply(i, StrataDensity::new));
-    private static final KeyDispatchDataCodec<StrataDensity> KEY_CODEC = KeyDispatchDataCodec.of(CODEC);
     static final DensityFunction Y = DensityFunctions.yClampedGradient(-4064, 4062, -4064, 4062);
-    private static final double SHIFT = 100003.0;
+    private static final float SHIFT = 100003f;
 
     private final Strata strata;
     private final DensityFunction terrain;
@@ -83,7 +78,7 @@ public final class StrataDensity implements DensityFunction {
         }
         DensityFunction out = terrain;
         for (List<DensityFunction> group : List.of(continents, islands)) {
-            if (!group.isEmpty()) out = max(out, DensityFunctions.interpolated(group.stream().reduce(DensityFunctions::max).get()));
+            if (!group.isEmpty()) out = max(out, DensityFunctions.interpolated(group.stream().reduce(DensityFunctions::max).get(), 4, 8));
         }
         return out;
     }
@@ -106,8 +101,8 @@ public final class StrataDensity implements DensityFunction {
         int c = p.base() + (int) Math.round(center * t);
         int s = 2 * t + 100;
         double topK = 1 / (up * t), bottomK = 1 / (down * t);
-        DensityFunction profile = min(DensityFunctions.yClampedGradient(c, c + s, 0.0, -s * topK),
-                DensityFunctions.yClampedGradient(c - s, c, -s * bottomK, 0.0));
+        DensityFunction profile = min(DensityFunctions.yClampedGradient(c, c + s, 0f, (float) (-s * topK)),
+                DensityFunctions.yClampedGradient(c - s, c, (float) (-s * bottomK), 0f));
         return gate(p, mul(constant(2.0), add(h, profile)));
     }
 
@@ -119,41 +114,57 @@ public final class StrataDensity implements DensityFunction {
         return DensityFunctions.rangeChoice(Y, p.gateLo(), p.gateHi(), body, constant(-1.0));
     }
 
-    private static DensityFunction noise2d(Holder<NormalNoise.NoiseParameters> noise, Layer l, int k) {
+    private static DensityFunction noise2d(Holder<NormalNoise> noise, Layer l, int k) {
         return DensityFunctions.shiftedNoise2d(constant(k * SHIFT), constant(-k * SHIFT), 1.0 / l.size(), noise);
     }
 
+    private static DensityFunction add(DensityFunction a, DensityFunction b) {
+        return DensityFunctions.add(a, b);
+    }
+
+    private static DensityFunction mul(DensityFunction a, DensityFunction b) {
+        return DensityFunctions.mul(a, b);
+    }
+
+    private static DensityFunction min(DensityFunction a, DensityFunction b) {
+        return DensityFunctions.min(a, b);
+    }
+
+    private static DensityFunction max(DensityFunction a, DensityFunction b) {
+        return DensityFunctions.max(a, b);
+    }
+
+    private static DensityFunction constant(double value) {
+        return DensityFunctions.constant((float) value);
+    }
+
     private static DensityFunction flat(DensityFunction f) {
-        return DensityFunctions.flatCache(DensityFunctions.cache2d(f));
+        return DensityFunctions.cache(f);
     }
 
     @Override
-    public double compute(FunctionContext context) {
-        return inner.compute(context);
+    public DensitySampler compileSampler(CompileContext context) {
+        return inner.compileSampler(context);
     }
 
     @Override
-    public void fillArray(double[] array, ContextProvider provider) {
-        inner.fillArray(array, provider);
+    public DensityFunction rewriteChildren(DfRewriteRule rule) {
+        DensityFunction rewritten = rule.rewrite(inner);
+        return rewritten == inner ? this : new StrataDensity(strata, terrain, land, noises, rewritten);
     }
 
     @Override
-    public DensityFunction mapChildren(Visitor visitor) {
-        return new StrataDensity(strata, terrain, land, noises, visitor.apply(inner));
+    public Interval range() {
+        return inner.range();
     }
 
     @Override
-    public double minValue() {
-        return inner.minValue();
+    public @Axes int domainAxes() {
+        return inner.domainAxes();
     }
 
     @Override
-    public double maxValue() {
-        return inner.maxValue();
-    }
-
-    @Override
-    public KeyDispatchDataCodec<? extends DensityFunction> codec() {
-        return KEY_CODEC;
+    public MapCodec<? extends DensityFunction> codec() {
+        return CODEC;
     }
 }
