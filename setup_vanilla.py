@@ -9,8 +9,8 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-MC = "1.21.1"
-NEOFORGE = "21.1.250"
+MC = "26.1.2"
+NEOFORGE = "26.1.2.122"
 ROOT = Path(__file__).parent
 REF = ROOT / "vanilla"
 SERVER = ROOT / "testserver"
@@ -18,7 +18,7 @@ JAVA = os.environ.get("JAVA", "java")
 
 
 def get(url):
-    with urllib.request.urlopen(url) as r:
+    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "sky-strata-setup"})) as r:
         return r.read()
 
 
@@ -60,7 +60,7 @@ def main():
 
     print("downloading neoforge", NEOFORGE)
     nf = get(f"https://maven.neoforged.net/releases/net/neoforged/neoforge/{NEOFORGE}/neoforge-{NEOFORGE}-universal.jar")
-    extract(io.BytesIO(nf), "data/c/tags/worldgen/biome/", REF / "neoforge")
+    extract(io.BytesIO(nf), "data/c/tags/worldgen/biome/", REF / "loader")
     print("reference data ready in", REF, file=sys.stderr)
 
 

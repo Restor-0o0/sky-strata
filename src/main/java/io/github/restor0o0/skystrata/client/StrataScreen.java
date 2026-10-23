@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CycleButton;
@@ -111,8 +111,8 @@ public class StrataScreen extends Screen {
         editor.clear();
         if (selected < 0 || selected >= layers.size()) return;
         Layer l = layers.get(selected);
-        CycleButton<Layer.Kind> kind = CycleButton.builder((Layer.Kind k) -> Component.translatable("skystrata.kind." + k.getSerializedName()))
-                .withValues(Layer.Kind.values()).withInitialValue(l.kind())
+        CycleButton<Layer.Kind> kind = CycleButton.builder((Layer.Kind k) -> Component.translatable("skystrata.kind." + k.getSerializedName()), l.kind())
+                .withValues(Layer.Kind.values())
                 .create(0, 0, EDITOR_WIDTH, 20, Component.translatable("skystrata.layer.kind"),
                         (b, k) -> set(k.defaults().withGap(layer().gap()), true));
         kind.setTooltip(Tooltip.create(Component.translatable("skystrata.layer.kind.tooltip")));
@@ -167,11 +167,11 @@ public class StrataScreen extends Screen {
     }
 
     @Override
-    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        super.render(graphics, mouseX, mouseY, partialTick);
-        graphics.drawCenteredString(font, title, width / 2, 8, 0xFFFFFF);
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+        graphics.centeredText(font, title, width / 2, 8, 0xFFFFFFFF);
         if (layers.isEmpty()) {
-            graphics.drawCenteredString(font, Component.translatable("skystrata.info.empty"), editorX + EDITOR_WIDTH / 2, editorY + 6, 0xA0A0A0);
+            graphics.centeredText(font, Component.translatable("skystrata.info.empty"), editorX + EDITOR_WIDTH / 2, editorY + 6, 0xFFA0A0A0);
         }
         Component info;
         if (fits()) {
@@ -180,7 +180,7 @@ public class StrataScreen extends Screen {
         } else {
             info = Component.translatable("skystrata.info.too_tall", maxHeight + Strata.MIN_Y - 1);
         }
-        graphics.drawCenteredString(font, info, width / 2, height - 44, fits() ? 0xA0A0A0 : 0xFF5555);
+        graphics.centeredText(font, info, width / 2, height - 44, fits() ? 0xFFA0A0A0 : 0xFFFF5555);
     }
 
     @Override

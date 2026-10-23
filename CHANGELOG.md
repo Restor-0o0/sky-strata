@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.0+26.1
+
+Port of 1.1.0 to Minecraft 26.1.2 (NeoForge 26.1.2). Same features and presets as the 1.21.1 release.
+
 ## 1.1.0
 
 First public release.

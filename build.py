@@ -202,6 +202,7 @@ def retarget(obj):
     s = json.dumps(obj)
     s = s.replace("minecraft:overworld/sloped_cheese", df("sloped_cheese"))
     s = s.replace("minecraft:overworld/depth", df("depth"))
+    s = s.replace('"minecraft:overworld/offset"', f'"{df("offset")}"')
     s = s.replace('"from_y": 240', f'"from_y": {TERRAIN_TOP_SLIDE[0]}')
     s = s.replace('"to_y": 256', f'"to_y": {TERRAIN_TOP_SLIDE[1]}')
     return json.loads(s)
@@ -217,7 +218,7 @@ def noise_settings():
     r["final_density"] = {"type": f"{NS}:strata", "terrain": df("terrain"), "land": df("land")}
 
     r["fluid_level_floodedness"] = yrange(MIN_Y, DRY_ABOVE_Y, r["fluid_level_floodedness"], -1.0)
-    r["initial_density_without_jaggedness"] = retarget(r["initial_density_without_jaggedness"])
+    r["preliminary_surface_level"] = retarget(r["preliminary_surface_level"])
 
     r["depth"] = {"type": f"{NS}:strata_biome_depth", "fallback": df("biome_depth")}
     write(f"worldgen/noise_settings/{PRESET}.json", ns)
@@ -249,8 +250,7 @@ def biomes(remap, extra):
             write(f"worldgen/biome/{name}.json", biome_copy(name, remap, extra))
     for name, (src, weird, humid) in SKY_BIOMES.items():
         b = biome_copy(src, remap, extra)
-        b["effects"]["fog_color"] = 0xD8E8FF
-        b["effects"]["sky_color"] = 0x8FC4FF
+        b.setdefault("attributes", {}).update({"minecraft:visual/fog_color": "#d8e8ff", "minecraft:visual/sky_color": "#8fc4ff"})
         write(f"worldgen/biome/{name}.json", b)
         sources[name] = src
         params.append({"biome": df(name), "parameters": {
@@ -265,8 +265,9 @@ def biome_tags(sources):
     for name, src in sources.items():
         by_src.setdefault(f"minecraft:{src}", []).append(name)
     n = 0
-    for ns, base in (("minecraft", VAN / "tags" / "worldgen" / "biome"),
-                     ("c", REF / "neoforge" / "data" / "c" / "tags" / "worldgen" / "biome")):
+    roots = [("minecraft", VAN / "tags" / "worldgen" / "biome")]
+    roots += [(d.name, d / "tags" / "worldgen" / "biome") for d in sorted((REF / "loader" / "data").iterdir())]
+    for ns, base in roots:
         for f in sorted(base.rglob("*.json")):
             rel = f.relative_to(base).as_posix()
             ids = [v if isinstance(v, str) else v["id"] for v in json.loads(f.read_text(encoding="utf-8"))["values"]]

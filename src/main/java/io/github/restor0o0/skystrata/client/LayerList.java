@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nullable;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.network.chat.Component;
 
@@ -24,7 +24,7 @@ class LayerList extends ObjectSelectionList<LayerList.Entry> {
         for (int i = 0; i < placed.size(); i++) entries.add(new Entry(i, placed.get(i)));
         replaceEntries(entries);
         super.setSelected(selected >= 0 && selected < entries.size() ? entries.get(selected) : null);
-        if (getSelected() != null) ensureVisible(getSelected());
+        if (getSelected() != null) scrollToEntry(getSelected());
     }
 
     int selectedIndex() {
@@ -45,7 +45,7 @@ class LayerList extends ObjectSelectionList<LayerList.Entry> {
     }
 
     @Override
-    protected int getScrollbarPosition() {
+    protected int scrollBarX() {
         return getX() + width - 6;
     }
 
@@ -62,15 +62,10 @@ class LayerList extends ObjectSelectionList<LayerList.Entry> {
         }
 
         @Override
-        public void render(GuiGraphics graphics, int idx, int top, int left, int width, int height, int mouseX, int mouseY,
-                           boolean hovering, float partialTick) {
-            graphics.drawString(minecraft.font, name, left + 2, top + 3, 0xFFFFFF);
-            graphics.drawString(minecraft.font, range, left + width - 4 - minecraft.font.width(range), top + 3, 0xA0A0A0);
-        }
-
-        @Override
-        public boolean mouseClicked(double mouseX, double mouseY, int button) {
-            return true;
+        public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float partialTick) {
+            int top = getContentY() + 1;
+            graphics.text(minecraft.font, name, getContentX() + 2, top, 0xFFFFFFFF);
+            graphics.text(minecraft.font, range, getContentRight() - 2 - minecraft.font.width(range), top, 0xFFA0A0A0);
         }
 
         @Override

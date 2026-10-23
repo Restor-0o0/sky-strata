@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
-WORLD = ROOT / "testserver" / "world" / "region"
+WORLD = ROOT / "testserver" / "world" / "dimensions" / "minecraft" / "overworld" / "region"
 OUT = ROOT / "renders"
 MIN_Y = -64
 
