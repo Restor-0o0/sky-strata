@@ -1,8 +1,8 @@
 # Changelog
 
-## 1.1.0+26.1
+## 1.1.0+26.2
 
-Port of 1.1.0 to Minecraft 26.1.2 (NeoForge 26.1.2). Same features and presets as the 1.21.1 release.
+Port of 1.1.0 to Minecraft 26.2 (NeoForge 26.2). Includes a copy of the new Sulfur Caves biome. Same features and presets as the 1.21.1 release.
 
 ## 1.1.0
 

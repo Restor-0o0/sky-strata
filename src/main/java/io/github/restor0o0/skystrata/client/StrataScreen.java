@@ -163,7 +163,7 @@ public class StrataScreen extends Screen {
     private void apply() {
         Strata strata = strata();
         parent.getUiState().updateDimensions((access, dims) -> StrataPreset.apply(access, dims, strata));
-        minecraft.setScreen(parent);
+        minecraft.gui.setScreen(parent);
     }
 
     @Override
@@ -185,6 +185,6 @@ public class StrataScreen extends Screen {
 
     @Override
     public void onClose() {
-        minecraft.setScreen(parent);
+        minecraft.gui.setScreen(parent);
     }
 }

@@ -9,7 +9,7 @@ import net.minecraft.world.level.levelgen.DensityFunctions;
 public final class StrataBiomeDepth implements DensityFunction {
     public static final MapCodec<StrataBiomeDepth> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
             Strata.CODEC.optionalFieldOf("layers", Strata.DEFAULT).forGetter(StrataBiomeDepth::strata),
-            DensityFunction.HOLDER_HELPER_CODEC.fieldOf("fallback").forGetter(StrataBiomeDepth::fallback)
+            DensityFunction.CODEC.fieldOf("fallback").forGetter(StrataBiomeDepth::fallback)
     ).apply(i, StrataBiomeDepth::new));
     private static final KeyDispatchDataCodec<StrataBiomeDepth> KEY_CODEC = KeyDispatchDataCodec.of(CODEC);
     private static final double SKY_DEPTH = -2.0;
@@ -52,8 +52,8 @@ public final class StrataBiomeDepth implements DensityFunction {
     }
 
     @Override
-    public DensityFunction mapAll(Visitor visitor) {
-        return visitor.apply(new StrataBiomeDepth(strata, fallback, inner.mapAll(visitor)));
+    public DensityFunction mapChildren(Visitor visitor) {
+        return new StrataBiomeDepth(strata, fallback, visitor.apply(inner));
     }
 
     @Override

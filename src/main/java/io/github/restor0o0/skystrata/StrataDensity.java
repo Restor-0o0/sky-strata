@@ -21,8 +21,8 @@ import net.minecraft.world.level.levelgen.synth.NormalNoise;
 public final class StrataDensity implements DensityFunction {
     public static final MapCodec<StrataDensity> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
             Strata.CODEC.optionalFieldOf("layers", Strata.DEFAULT).forGetter(StrataDensity::strata),
-            DensityFunction.HOLDER_HELPER_CODEC.fieldOf("terrain").forGetter(StrataDensity::terrain),
-            DensityFunction.HOLDER_HELPER_CODEC.fieldOf("land").forGetter(StrataDensity::land),
+            DensityFunction.CODEC.fieldOf("terrain").forGetter(StrataDensity::terrain),
+            DensityFunction.CODEC.fieldOf("land").forGetter(StrataDensity::land),
             StrataNoises.CODEC.forGetter(StrataDensity::noises)
     ).apply(i, StrataDensity::new));
     private static final KeyDispatchDataCodec<StrataDensity> KEY_CODEC = KeyDispatchDataCodec.of(CODEC);
@@ -138,8 +138,8 @@ public final class StrataDensity implements DensityFunction {
     }
 
     @Override
-    public DensityFunction mapAll(Visitor visitor) {
-        return visitor.apply(new StrataDensity(strata, terrain, land, noises, inner.mapAll(visitor)));
+    public DensityFunction mapChildren(Visitor visitor) {
+        return new StrataDensity(strata, terrain, land, noises, visitor.apply(inner));
     }
 
     @Override

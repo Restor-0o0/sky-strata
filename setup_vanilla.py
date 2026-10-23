@@ -9,8 +9,8 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-MC = "26.1.2"
-NEOFORGE = "26.1.2.122"
+MC = "26.2"
+NEOFORGE = "26.2.0.93"
 ROOT = Path(__file__).parent
 REF = ROOT / "vanilla"
 SERVER = ROOT / "testserver"
