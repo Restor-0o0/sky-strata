@@ -18,7 +18,7 @@ abstract class DedicatedServerPropertiesMixin {
         WorldDimensions dims = cir.getReturnValue();
         if (Strata.of(dims.overworld()) != null) {
             ServerConfig.Settings settings = ServerConfig.load();
-            cir.setReturnValue(StrataPreset.apply(access, dims, settings.strata(), settings.islandLight()));
+            cir.setReturnValue(StrataPreset.apply(access, dims, settings.strata(), settings.islandLight(), settings.skyBiomes()));
         }
     }
 }
