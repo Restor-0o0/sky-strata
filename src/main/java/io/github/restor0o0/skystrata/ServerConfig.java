@@ -2,6 +2,7 @@ package io.github.restor0o0.skystrata;
 
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.datafixers.util.Either;
 import com.mojang.logging.LogUtils;
@@ -26,7 +27,10 @@ public final class ServerConfig {
         return FMLPaths.CONFIGDIR.get().resolve(SkyStrata.MOD_ID + ".json");
     }
 
-    public static Strata load() {
+    public record Settings(Strata strata, boolean islandLight) {
+    }
+
+    public static Settings load() {
         Path path = path();
         try {
             if (Files.notExists(path)) {
@@ -39,8 +43,9 @@ public final class ServerConfig {
             Strata strata = CODEC.parse(JsonOps.INSTANCE, json)
                     .getOrThrow(error -> new IllegalStateException("Invalid " + path + ": " + error))
                     .map(LayerPresets::strata, s -> s);
-            LOGGER.info("Generating Sky Strata layers from {}: {}", path, strata.layers());
-            return strata;
+            boolean islandLight = !(json instanceof JsonObject o && o.has("island_light")) || o.get("island_light").getAsBoolean();
+            LOGGER.info("Generating Sky Strata layers from {}: {}, island light {}", path, strata.layers(), islandLight);
+            return new Settings(strata, islandLight);
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot read " + path, e);
         }

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.0+26.3
+
+Port of 1.2.0 to Minecraft 26.3 (NeoForge 26.3).
+
+## 1.2.0
+
+- Continents layers have a new **Landing** setting: *Floating* (as before), *Mixed* (some giant islands stand on the ground on sheer cliffs, others hover low above it) and *Settled* (all of them stand on the ground). Landed islands have wide gaps of normal terrain between them; the layer's density sets how narrow the gaps are. A new **Taper** slider sets how much landed islands narrow toward the ground.
+- New preset **Settled**: the Classic layers with mixed landing.
+- Sky light in Sky Strata worlds also falls at an angle, so the ground under the edges of floating islands is lit about 16 blocks in. Further in, the space under an island is lit dimly, and brighter the higher the island floats. Caves stay dark. Other worlds are not affected. It can be turned off per world with the new Island light button, or with `"island_light": false` in the server config.
+- Existing worlds and configs keep floating continents and generate as before.
+
 ## 1.1.0+26.3
 
 Port of 1.1.0 to Minecraft 26.3 (NeoForge 26.3). Includes copies of the Sulfur Caves and Dappled Forest biomes. Same features and presets as the 1.21.1 release.

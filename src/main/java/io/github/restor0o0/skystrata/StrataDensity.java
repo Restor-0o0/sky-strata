@@ -86,13 +86,34 @@ public final class StrataDensity implements DensityFunction {
     private static DensityFunction continent(Strata.Placed p, int k, DensityFunction land, StrataNoises n) {
         Layer l = p.layer();
         double f = l.thickness() / 160.0;
-        DensityFunction shape = add(noise2d(n.giant(), l, k), add(constant(bias(l)), mul(constant(1.5), add(land, constant(-1.0)))));
+        boolean floating = l.landing() == Layer.Landing.FLOATING;
+        DensityFunction shape = !floating ? plateaus(l, k, land, n)
+                : add(noise2d(n.giant(), l, k), add(constant(bias(l)), mul(constant(1.5), add(land, constant(-1.0)))));
         DensityFunction h = add(flat(shape), mul(constant(0.045), DensityFunctions.noise(n.detail(), 1.0, 1.0)));
         DensityFunction top = flat(add(constant(p.top()), mul(constant(25 * f), noise2d(n.giantTop(), l, k))));
         DensityFunction belowTop = add(Y, mul(constant(-1.0), top));
-        DensityFunction undercut = mul(constant(1 / (280 * f)), add(belowTop, constant(40 * f)));
-        DensityFunction profile = min(min(mul(constant(-1 / 40.0), belowTop), mul(constant(1 / (900 * f)), belowTop)), undercut);
+        DensityFunction cap = mul(constant(-1 / 40.0), belowTop);
+        DensityFunction profile;
+        if (!floating) {
+            float taper = 0.4f * l.taper();
+            profile = min(cap, DensityFunctions.yClampedGradient(Strata.GROUND + 10, p.top(), -taper, 0f));
+            if (l.landing() == Layer.Landing.MIXED) {
+                DensityFunction lift = add(constant(0.3), mul(constant(2.5), noise2d(n.giant(), l, k + 3, 1.0))).clamp(-0.4f, 1.0f);
+                DensityFunction bottom = flat(add(constant(Strata.GROUND + 10), mul(constant(40.0), lift)));
+                profile = min(profile, mul(constant(1 / 30.0), add(Y, mul(constant(-1.0), bottom))));
+            }
+        } else {
+            DensityFunction undercut = mul(constant(1 / (280 * f)), add(belowTop, constant(40 * f)));
+            profile = min(min(cap, mul(constant(1 / (900 * f)), belowTop)), undercut);
+        }
         return gate(p, mul(constant(2.0), add(h, profile)));
+    }
+
+    private static DensityFunction plateaus(Layer l, int k, DensityFunction land, StrataNoises n) {
+        DensityFunction inland = add(mul(constant(3.0), land).clamp(0f, 1f), constant(-1.0));
+        DensityFunction cracks = add(noise2d(n.giant(), l, k, 2.0).abs(), constant(0.25 * l.density() - 0.3));
+        DensityFunction presence = add(mul(constant(2.0), noise2d(n.giantTop(), l, k + 5, 0.6)), constant(2.4 * l.density() - 0.5));
+        return add(min(cracks, presence), mul(constant(1.5), inland));
     }
 
     private static DensityFunction island(Strata.Placed p, DensityFunction noise, double center, double up, double down, StrataNoises n) {
@@ -115,7 +136,11 @@ public final class StrataDensity implements DensityFunction {
     }
 
     private static DensityFunction noise2d(Holder<NormalNoise> noise, Layer l, int k) {
-        return DensityFunctions.shiftedNoise2d(constant(k * SHIFT), constant(-k * SHIFT), 1.0 / l.size(), noise);
+        return noise2d(noise, l, k, 1.0);
+    }
+
+    private static DensityFunction noise2d(Holder<NormalNoise> noise, Layer l, int k, double scale) {
+        return DensityFunctions.shiftedNoise2d(constant(k * SHIFT), constant(-k * SHIFT), scale / l.size(), noise);
     }
 
     private static DensityFunction add(DensityFunction a, DensityFunction b) {

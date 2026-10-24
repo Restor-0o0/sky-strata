@@ -17,7 +17,8 @@ abstract class DedicatedServerPropertiesMixin {
     private void skystrata$applyLayers(HolderLookup.Provider access, CallbackInfoReturnable<WorldDimensions> cir) {
         WorldDimensions dims = cir.getReturnValue();
         if (Strata.of(dims.overworld()) != null) {
-            cir.setReturnValue(StrataPreset.apply(access, dims, ServerConfig.load()));
+            ServerConfig.Settings settings = ServerConfig.load();
+            cir.setReturnValue(StrataPreset.apply(access, dims, settings.strata(), settings.islandLight()));
         }
     }
 }

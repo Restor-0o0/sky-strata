@@ -4,36 +4,68 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.util.StringRepresentable;
 
-public record Layer(Kind kind, int gap, int thickness, float density, float size) {
+public record Layer(Kind kind, int gap, int thickness, float density, float size, Landing landing, float taper) {
     public static final int MIN_GAP = -64, MAX_GAP = 256, MIN_THICKNESS = 16, MAX_THICKNESS = 320;
-    public static final float MIN_SIZE = 0.25f, MAX_SIZE = 4f;
+    public static final float MIN_SIZE = 0.25f, MAX_SIZE = 4f, DEFAULT_TAPER = 0.75f;
 
     public static final Codec<Layer> CODEC = RecordCodecBuilder.create(i -> i.group(
             Kind.CODEC.fieldOf("kind").forGetter(Layer::kind),
             Codec.intRange(MIN_GAP, MAX_GAP).fieldOf("gap").forGetter(Layer::gap),
             Codec.intRange(MIN_THICKNESS, MAX_THICKNESS).fieldOf("thickness").forGetter(Layer::thickness),
             Codec.floatRange(0, 1).fieldOf("density").forGetter(Layer::density),
-            Codec.floatRange(MIN_SIZE, MAX_SIZE).optionalFieldOf("size", 1f).forGetter(Layer::size)
+            Codec.floatRange(MIN_SIZE, MAX_SIZE).optionalFieldOf("size", 1f).forGetter(Layer::size),
+            Landing.CODEC.optionalFieldOf("landing", Landing.FLOATING).forGetter(Layer::landing),
+            Codec.floatRange(0, 1).optionalFieldOf("taper", DEFAULT_TAPER).forGetter(Layer::taper)
     ).apply(i, Layer::new));
 
+    public Layer(Kind kind, int gap, int thickness, float density, float size) {
+        this(kind, gap, thickness, density, size, Landing.FLOATING, DEFAULT_TAPER);
+    }
+
     public Layer withKind(Kind kind) {
-        return new Layer(kind, gap, thickness, density, size);
+        return new Layer(kind, gap, thickness, density, size, landing, taper);
     }
 
     public Layer withGap(int gap) {
-        return new Layer(kind, gap, thickness, density, size);
+        return new Layer(kind, gap, thickness, density, size, landing, taper);
     }
 
     public Layer withThickness(int thickness) {
-        return new Layer(kind, gap, thickness, density, size);
+        return new Layer(kind, gap, thickness, density, size, landing, taper);
     }
 
     public Layer withDensity(float density) {
-        return new Layer(kind, gap, thickness, density, size);
+        return new Layer(kind, gap, thickness, density, size, landing, taper);
     }
 
     public Layer withSize(float size) {
-        return new Layer(kind, gap, thickness, density, size);
+        return new Layer(kind, gap, thickness, density, size, landing, taper);
+    }
+
+    public Layer withLanding(Landing landing) {
+        return new Layer(kind, gap, thickness, density, size, landing, taper);
+    }
+
+    public Layer withTaper(float taper) {
+        return new Layer(kind, gap, thickness, density, size, landing, taper);
+    }
+
+    public enum Landing implements StringRepresentable {
+        FLOATING("floating"),
+        MIXED("mixed"),
+        GROUNDED("grounded");
+
+        public static final Codec<Landing> CODEC = StringRepresentable.fromEnum(Landing::values);
+        private final String name;
+
+        Landing(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String getSerializedName() {
+            return name;
+        }
     }
 
     public enum Kind implements StringRepresentable {

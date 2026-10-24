@@ -17,6 +17,8 @@ HEIGHTS = (528, 784, 1040, 1552, 2096)
 TERRAIN_TOP_SLIDE = (130, 175)
 LAND_LIFT = 0.20
 DRY_ABOVE_Y = 10
+AMBIENT_LIGHT = 0.1
+VANILLA_LIGHT = "_vanilla_light"
 
 SKY_BIOMES = {
     "sky_taiga": ("taiga", (-2.0, -0.6), (-2.0, 2.0)),
@@ -257,10 +259,12 @@ def noise_settings():
 
 
 def dimension_type():
-    for i, h in enumerate(HEIGHTS):
-        dt = load("dimension_type/overworld.json")
-        dt.update(min_y=MIN_Y, height=h, logical_height=h)
-        write(f"dimension_type/{PRESET}{'' if i == 0 else f'_{h}'}.json", dt)
+    for island_light in (True, False):
+        for i, h in enumerate(HEIGHTS):
+            dt = load("dimension_type/overworld.json")
+            dt.update(min_y=MIN_Y, height=h, logical_height=h, ambient_light=AMBIENT_LIGHT if island_light else 0.0)
+            name = PRESET + ("" if island_light else VANILLA_LIGHT) + ("" if i == 0 else f"_{h}")
+            write(f"dimension_type/{name}.json", dt)
 
 
 def biome_copy(src, remap, extra):

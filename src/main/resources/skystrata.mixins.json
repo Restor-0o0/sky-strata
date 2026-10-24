@@ -3,6 +3,9 @@
   "minVersion": "0.8",
   "package": "io.github.restor0o0.skystrata.mixin",
   "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "SkyLightEngineMixin"
+  ],
   "server": [
     "DedicatedServerPropertiesMixin"
   ],
