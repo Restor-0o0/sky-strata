@@ -31,7 +31,8 @@ public record Strata(List<Layer> layers) {
             int base = prev + l.gap();
             int top = base + l.thickness();
             if (l.kind() == Layer.Kind.CONTINENTS) {
-                out.add(new Placed(l, base, top, Math.max(MIN_Y, base - 75), top + 50, top - 70));
+                int lo = l.landing() == Layer.Landing.FLOATING ? Math.max(MIN_Y, base - 75) : GROUND - 40;
+                out.add(new Placed(l, base, top, lo, top + 50, top - 70));
             } else {
                 out.add(new Placed(l, base, top, base, top, base));
             }
