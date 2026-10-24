@@ -43,6 +43,7 @@ jobs:
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "name=${version%%+*} ($(sed -n 's/^minecraft_version=//p' gradle.properties))" >> "$GITHUB_OUTPUT"
       - name: Publish
         if: startsWith(github.ref, 'refs/tags/v')
         uses: Kira-NT/mc-publish@v3.3
@@ -53,7 +54,7 @@ jobs:
           curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           files: build/libs/skystrata-${{ steps.release.outputs.version }}.jar
-          name: Sky Strata ${{ steps.release.outputs.version }}
+          name: Sky Strata ${{ steps.release.outputs.name }}
           version: ${{ steps.release.outputs.version }}
           version-type: release
           changelog-file: release-notes.md
