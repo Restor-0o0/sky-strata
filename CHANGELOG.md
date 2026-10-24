@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.2
+
+- Islands and continents have caves: the vanilla cheese, spaghetti and noodle caves with entrances on the surface. Shards stay solid.
+- Copper, gold, redstone, lapis and diamond ores generate inside every layer, placed relative to the layer instead of the absolute height. Diamonds, redstone and gold sit in the lower part of a layer, copper in the upper part.
+- In existing worlds the caves and ores appear only in newly generated chunks.
+
 ## 1.2.1
 
 - New **Biomes** button on the Customize screen. *Sky* keeps the sky biomes on the islands and shards above the continents. *Local* gives them the biome of the place below them, like the continents and the ground. On a dedicated server set `"sky_biomes": false` in `config/skystrata.json`.
