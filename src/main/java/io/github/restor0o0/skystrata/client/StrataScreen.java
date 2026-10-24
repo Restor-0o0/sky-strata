@@ -21,7 +21,7 @@ import net.minecraft.network.chat.Component;
 
 public class StrataScreen extends Screen {
     private static final int MIN_HEIGHT = 384;
-    private static final int LIST_WIDTH = 150, EDITOR_WIDTH = 200, GAP = 10, LIGHT_WIDTH = 160;
+    private static final int LIST_WIDTH = 150, EDITOR_WIDTH = 200, GAP = 10, OPTION_WIDTH = 100;
 
     private final CreateWorldScreen parent;
     private final int maxHeight;
@@ -29,6 +29,7 @@ public class StrataScreen extends Screen {
     private final List<AbstractWidget> editor = new ArrayList<>();
     private int selected;
     private boolean islandLight;
+    private boolean skyBiomes;
     private LayerList list;
     private Button preset, add, remove, up, down, done;
     private int editorX, editorY;
@@ -40,6 +41,7 @@ public class StrataScreen extends Screen {
         Strata current = Strata.of(context.selectedDimensions().overworld());
         this.layers = new ArrayList<>((current != null ? current : Strata.DEFAULT).layers());
         this.islandLight = StrataPreset.islandLight(context.selectedDimensions());
+        this.skyBiomes = StrataPreset.skyBiomes(context.selectedDimensions());
     }
 
     @Override
@@ -49,11 +51,16 @@ public class StrataScreen extends Screen {
         editorX = left + LIST_WIDTH + GAP;
         editorY = top;
 
-        int presetWidth = LIST_WIDTH + GAP + EDITOR_WIDTH - LIGHT_WIDTH - 5;
+        int presetWidth = LIST_WIDTH + GAP + EDITOR_WIDTH - 2 * (OPTION_WIDTH + 4);
         preset = addRenderableWidget(Button.builder(Component.empty(), b -> nextPreset()).bounds(left, 24, presetWidth, 20).build());
+        int optionX = left + presetWidth + 4;
         addRenderableWidget(CycleButton.onOffBuilder(islandLight)
                 .withTooltip(v -> Tooltip.create(Component.translatable("skystrata.island_light.tooltip")))
-                .create(left + presetWidth + 5, 24, LIGHT_WIDTH, 20, Component.translatable("skystrata.island_light"), (b, v) -> islandLight = v));
+                .create(optionX, 24, OPTION_WIDTH, 20, Component.translatable("skystrata.island_light"), (b, v) -> islandLight = v));
+        addRenderableWidget(CycleButton.booleanBuilder(Component.translatable("skystrata.biomes.sky"), Component.translatable("skystrata.biomes.local"))
+                .withInitialValue(skyBiomes)
+                .withTooltip(v -> Tooltip.create(Component.translatable("skystrata.biomes.tooltip")))
+                .create(optionX + OPTION_WIDTH + 4, 24, OPTION_WIDTH, 20, Component.translatable("skystrata.biomes"), (b, v) -> skyBiomes = v));
         list = addRenderableWidget(new LayerList(this, minecraft, left, top, LIST_WIDTH, bottom - top - 24));
 
         int y = bottom - 20;
@@ -179,7 +186,7 @@ public class StrataScreen extends Screen {
 
     private void apply() {
         Strata strata = strata();
-        parent.getUiState().updateDimensions((access, dims) -> StrataPreset.apply(access, dims, strata, islandLight));
+        parent.getUiState().updateDimensions((access, dims) -> StrataPreset.apply(access, dims, strata, islandLight, skyBiomes));
         minecraft.setScreen(parent);
     }
 

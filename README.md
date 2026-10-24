@@ -14,9 +14,11 @@ By default the world has three layers:
 
 The ocean, the coast and the ground between the islands keep the vanilla terrain. Trees and grass grow on every level.
 
-Sky light also falls at an angle, so the ground under the edges of floating islands is not dark. It reaches about 16 blocks in under an island. Further in, the space under an island is lit dimly, and brighter the higher the island floats. Caves stay dark. Turn **Island light** off on the Customize screen to keep vanilla lighting.
+The islands and shards above the continents have their own sky biomes: taiga, meadow, forest, cherry grove, birch forest and savanna. Set **Biomes** to *Local* on the Customize screen to give them the biome of the place below them instead, like the continents and the ground.
 
-> **Lighting mods.** Island light hooks into the vanilla sky light engine. Mods that replace the light engine, such as Moonrise, Starlight or ScalableLux, may conflict with it. The game will not crash, but the light under islands may be missing or look wrong. If that happens, turn Island light off for the world.
+Sky light also falls at an angle, so the ground under the edges of floating islands is not dark. It reaches about 16 blocks in under an island. Further in, the space under an island is lit dimly, and brighter the higher the island floats. Caves stay dark. Turn **Light** off on the Customize screen to keep vanilla lighting.
+
+> **Lighting mods.** Island light hooks into the vanilla sky light engine. Mods that replace the light engine, such as Moonrise, Starlight or ScalableLux, may conflict with it. The game will not crash, but the light under islands may be missing or look wrong. If that happens, turn Light off for the world.
 
 ## Installation
 
@@ -42,7 +44,7 @@ On first start the server writes `config/skystrata.json` with the default layers
 }
 ```
 
-Set `preset` to `classic`, `settled`, `archipelago`, `tower`, `giants` or `shattered`, or replace it with your own list of layers (fields as in [Configuring layers](#configuring-layers); `size` is optional and defaults to 1, `landing` is optional, only used by continents and defaults to `floating`; `taper` is optional, only used by landed continents and defaults to 0.75). Add `"island_light": false` to keep vanilla lighting:
+Set `preset` to `classic`, `settled`, `archipelago`, `tower`, `giants` or `shattered`, or replace it with your own list of layers (fields as in [Configuring layers](#configuring-layers); `size` is optional and defaults to 1, `landing` is optional, only used by continents and defaults to `floating`; `taper` is optional, only used by landed continents and defaults to 0.75). Add `"island_light": false` to keep vanilla lighting, and `"sky_biomes": false` to use local biomes on the islands:
 
 ```json
 {

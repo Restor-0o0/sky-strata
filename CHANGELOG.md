@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1
+
+- New **Biomes** button on the Customize screen. *Sky* keeps the sky biomes on the islands and shards above the continents. *Local* gives them the biome of the place below them, like the continents and the ground. On a dedicated server set `"sky_biomes": false` in `config/skystrata.json`.
+- Removed the glow lichen that 1.2.0 scattered on the islands. It showed up as yellow spots on the surface.
+- The island light button is now labeled **Light**.
+
 ## 1.2.0
 
 - Continents layers have a new **Landing** setting: *Floating* (as before), *Mixed* (some giant islands stand on the ground on sheer cliffs, others hover low above it) and *Settled* (all of them stand on the ground). Landed islands have wide gaps of normal terrain between them; the layer's density sets how narrow the gaps are. A new **Taper** slider sets how much landed islands narrow toward the ground.
