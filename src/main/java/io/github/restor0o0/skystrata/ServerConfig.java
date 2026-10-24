@@ -27,7 +27,7 @@ public final class ServerConfig {
         return FMLPaths.CONFIGDIR.get().resolve(SkyStrata.MOD_ID + ".json");
     }
 
-    public record Settings(Strata strata, boolean islandLight) {
+    public record Settings(Strata strata, boolean islandLight, boolean skyBiomes) {
     }
 
     public static Settings load() {
@@ -43,11 +43,16 @@ public final class ServerConfig {
             Strata strata = CODEC.parse(JsonOps.INSTANCE, json)
                     .getOrThrow(error -> new IllegalStateException("Invalid " + path + ": " + error))
                     .map(LayerPresets::strata, s -> s);
-            boolean islandLight = !(json instanceof JsonObject o && o.has("island_light")) || o.get("island_light").getAsBoolean();
-            LOGGER.info("Generating Sky Strata layers from {}: {}, island light {}", path, strata.layers(), islandLight);
-            return new Settings(strata, islandLight);
+            boolean islandLight = flag(json, "island_light");
+            boolean skyBiomes = flag(json, "sky_biomes");
+            LOGGER.info("Generating Sky Strata layers from {}: {}, island light {}, sky biomes {}", path, strata.layers(), islandLight, skyBiomes);
+            return new Settings(strata, islandLight, skyBiomes);
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot read " + path, e);
         }
+    }
+
+    private static boolean flag(JsonElement json, String name) {
+        return !(json instanceof JsonObject o && o.has(name)) || o.get(name).getAsBoolean();
     }
 }

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.1+26.1
+
+Port of 1.2.1 to Minecraft 26.1 (NeoForge 26.1).
+
+## 1.2.1
+
+- New **Biomes** button on the Customize screen. *Sky* keeps the sky biomes on the islands and shards above the continents. *Local* gives them the biome of the place below them, like the continents and the ground. On a dedicated server set `"sky_biomes": false` in `config/skystrata.json`.
+- Removed the glow lichen that 1.2.0 scattered on the islands. It showed up as yellow spots on the surface.
+- The island light button is now labeled **Light**.
+
 ## 1.2.0+26.1
 
 Port of 1.2.0 to Minecraft 26.1.2 (NeoForge 26.1.2).
