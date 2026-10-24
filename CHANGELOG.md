@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.2+26.3
+
+Port of 1.2.2 to Minecraft 26.3 (NeoForge 26.3).
+
+## 1.2.2
+
+- Islands and continents have caves: the vanilla cheese, spaghetti and noodle caves with entrances on the surface. Shards stay solid.
+- Copper, gold, redstone, lapis and diamond ores generate inside every layer, placed relative to the layer instead of the absolute height. Diamonds, redstone and gold sit in the lower part of a layer, copper in the upper part.
+- In existing worlds the caves and ores appear only in newly generated chunks.
+
 ## 1.2.1+26.3
 
 Port of 1.2.1 to Minecraft 26.3 (NeoForge 26.3).

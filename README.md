@@ -12,7 +12,7 @@ By default the world has three layers:
 - **Dense sky layer** (y 305–375). Frequent large islands.
 - **Shards** (y 385–462). A sparse layer of small floating islands.
 
-The ocean, the coast and the ground between the islands keep the vanilla terrain. Trees and grass grow on every level.
+The ocean, the coast and the ground between the islands keep the vanilla terrain. Trees and grass grow on every level, and the islands and continents have their own caves and ores.
 
 The islands and shards above the continents have their own sky biomes: taiga, meadow, forest, cherry grove, birch forest and savanna. Set **Biomes** to *Local* on the Customize screen to give them the biome of the place below them instead, like the continents and the ground.
 

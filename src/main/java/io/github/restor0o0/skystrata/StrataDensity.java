@@ -19,7 +19,8 @@ public final class StrataDensity implements DensityFunction {
             Strata.CODEC.optionalFieldOf("layers", Strata.DEFAULT).forGetter(StrataDensity::strata),
             DensityFunction.CODEC.fieldOf("terrain").forGetter(StrataDensity::terrain),
             DensityFunction.CODEC.fieldOf("land").forGetter(StrataDensity::land),
-            StrataNoises.CODEC.forGetter(StrataDensity::noises)
+            StrataNoises.CODEC.forGetter(StrataDensity::noises),
+            StrataCaves.CODEC.forGetter(StrataDensity::caves)
     ).apply(i, StrataDensity::new));
     static final DensityFunction Y = DensityFunctions.yClampedGradient(-4064, 4062, -4064, 4062);
     private static final float SHIFT = 100003f;
@@ -28,17 +29,20 @@ public final class StrataDensity implements DensityFunction {
     private final DensityFunction terrain;
     private final DensityFunction land;
     private final StrataNoises noises;
+    private final StrataCaves caves;
     private final DensityFunction inner;
 
-    public StrataDensity(Strata strata, DensityFunction terrain, DensityFunction land, StrataNoises noises) {
-        this(strata, terrain, land, noises, build(strata, terrain, land, noises));
+    public StrataDensity(Strata strata, DensityFunction terrain, DensityFunction land, StrataNoises noises, StrataCaves caves) {
+        this(strata, terrain, land, noises, caves, build(strata, terrain, land, noises, caves));
     }
 
-    private StrataDensity(Strata strata, DensityFunction terrain, DensityFunction land, StrataNoises noises, DensityFunction inner) {
+    private StrataDensity(Strata strata, DensityFunction terrain, DensityFunction land, StrataNoises noises, StrataCaves caves,
+                          DensityFunction inner) {
         this.strata = strata;
         this.terrain = terrain;
         this.land = land;
         this.noises = noises;
+        this.caves = caves;
         this.inner = inner;
     }
 
@@ -58,11 +62,15 @@ public final class StrataDensity implements DensityFunction {
         return noises;
     }
 
-    public StrataDensity withStrata(Strata strata) {
-        return new StrataDensity(strata, terrain, land, noises);
+    public StrataCaves caves() {
+        return caves;
     }
 
-    private static DensityFunction build(Strata strata, DensityFunction terrain, DensityFunction land, StrataNoises n) {
+    public StrataDensity withStrata(Strata strata) {
+        return new StrataDensity(strata, terrain, land, noises, caves);
+    }
+
+    private static DensityFunction build(Strata strata, DensityFunction terrain, DensityFunction land, StrataNoises n, StrataCaves caves) {
         Map<Layer.Kind, Integer> seen = new EnumMap<>(Layer.Kind.class);
         List<DensityFunction> continents = new ArrayList<>(), islands = new ArrayList<>();
         for (Strata.Placed p : strata.placed()) {
@@ -74,7 +82,8 @@ public final class StrataDensity implements DensityFunction {
                         30.0 / 70, 16.0 / 70, 50.0 / 70, n);
                 case SHARDS -> island(p, noise2d(n.sparse(), l, k), 40.0 / 77, 10.0 / 77, 38.0 / 77, n);
             };
-            (l.kind() == Layer.Kind.CONTINENTS ? continents : islands).add(body);
+            if (l.kind() != Layer.Kind.SHARDS) body = caves.carve(DensityFunctions.cache(mul(constant(StrataCaves.DEPTH_SCALE), body)));
+            (l.kind() == Layer.Kind.CONTINENTS ? continents : islands).add(gate(p, body));
         }
         DensityFunction out = terrain;
         for (List<DensityFunction> group : List.of(continents, islands)) {
@@ -106,7 +115,7 @@ public final class StrataDensity implements DensityFunction {
             DensityFunction undercut = mul(constant(1 / (280 * f)), add(belowTop, constant(40 * f)));
             profile = min(min(cap, mul(constant(1 / (900 * f)), belowTop)), undercut);
         }
-        return gate(p, mul(constant(2.0), add(h, profile)));
+        return mul(constant(2.0), add(h, profile));
     }
 
     private static DensityFunction plateaus(Layer l, int k, DensityFunction land, StrataNoises n) {
@@ -124,7 +133,7 @@ public final class StrataDensity implements DensityFunction {
         double topK = 1 / (up * t), bottomK = 1 / (down * t);
         DensityFunction profile = min(DensityFunctions.yClampedGradient(c, c + s, 0f, (float) (-s * topK)),
                 DensityFunctions.yClampedGradient(c - s, c, (float) (-s * bottomK), 0f));
-        return gate(p, mul(constant(2.0), add(h, profile)));
+        return mul(constant(2.0), add(h, profile));
     }
 
     private static double bias(Layer l) {
@@ -175,7 +184,7 @@ public final class StrataDensity implements DensityFunction {
     @Override
     public DensityFunction rewriteChildren(DfRewriteRule rule) {
         DensityFunction rewritten = rule.rewrite(inner);
-        return rewritten == inner ? this : new StrataDensity(strata, terrain, land, noises, rewritten);
+        return rewritten == inner ? this : new StrataDensity(strata, terrain, land, noises, caves, rewritten);
     }
 
     @Override
