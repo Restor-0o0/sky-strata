@@ -8,11 +8,15 @@ A world type for Minecraft 26.2 (NeoForge) built for airships. If you play with 
 
 By default the world has three layers:
 
-- **Giant islands** (top surface around y 230–280). Floating continents hundreds of blocks across. Their sides are near-vertical cliffs that cut deep inward below the rim. Under them lies a forest floor with rivers. The gaps between islands are huge.
+- **Giant islands** (top surface around y 230–280). Floating continents hundreds of blocks across.
 - **Dense sky layer** (y 305–375). Frequent large islands.
 - **Shards** (y 385–462). A sparse layer of small floating islands.
 
-The ocean and vanilla terrain stay below the giant islands. Trees and grass grow on every level.
+The ocean, the coast and the ground between the islands keep the vanilla terrain. Trees and grass grow on every level.
+
+Sky light also falls at an angle, so the ground under the edges of floating islands is not dark. It reaches about 16 blocks in under an island. Further in, the space under an island is lit dimly, and brighter the higher the island floats. Caves stay dark. Turn **Island light** off on the Customize screen to keep vanilla lighting.
+
+> **Lighting mods.** Island light hooks into the vanilla sky light engine. Mods that replace the light engine, such as Moonrise, Starlight or ScalableLux, may conflict with it. The game will not crash, but the light under islands may be missing or look wrong. If that happens, turn Island light off for the world.
 
 ## Installation
 
@@ -38,12 +42,12 @@ On first start the server writes `config/skystrata.json` with the default layers
 }
 ```
 
-Set `preset` to `classic`, `archipelago`, `tower`, `giants` or `shattered`, or replace it with your own list of layers (fields as in [Configuring layers](#configuring-layers); `size` is optional and defaults to 1):
+Set `preset` to `classic`, `settled`, `archipelago`, `tower`, `giants` or `shattered`, or replace it with your own list of layers (fields as in [Configuring layers](#configuring-layers); `size` is optional and defaults to 1, `landing` is optional, only used by continents and defaults to `floating`; `taper` is optional, only used by landed continents and defaults to 0.75). Add `"island_light": false` to keep vanilla lighting:
 
 ```json
 {
   "layers": [
-    { "kind": "continents", "gap": 32, "thickness": 160, "density": 0.54, "size": 1.0 },
+    { "kind": "continents", "gap": 32, "thickness": 160, "density": 0.54, "size": 1.0, "landing": "mixed" },
     { "kind": "islands", "gap": 50, "thickness": 70, "density": 0.45 },
     { "kind": "shards", "gap": 10, "thickness": 77, "density": 0.26 }
   ]
@@ -57,6 +61,7 @@ The file is read only when a new world is created. To apply changes, delete the 
 With **Sky Strata** selected, click **Customize** on the world creation screen. The **Preset** button cycles through ready-made layouts:
 
 - **Classic**: the default three layers described above.
+- **Settled**: the same layers, but the giant islands have come down: some stand on the ground on sheer cliffs, others hover low above it. Between them lies the ground they cracked away from, with forests and rivers.
 - **Archipelago**: no continents, two island layers with shards above them.
 - **Sky Tower**: five layers stacked up to y 699.
 - **Giants**: a single layer of huge continents.
@@ -67,8 +72,10 @@ The layer list on the left shows each layer's height range; select a layer to ed
 - **Type**: continents, islands or shards.
 - **Gap**: distance from the top of the previous layer to the bottom of this one. For the first layer it is counted from sea level (y 63). Negative values let layers overlap.
 - **Thickness**: height of the layer in blocks.
-- **Density**: how much of the sky the layer fills.
+- **Density**: how much of the sky the layer fills. For landed continents it sets how narrow the gaps between the islands are.
 - **Size**: horizontal scale of the islands.
+- **Landing** (continents only): *Floating* keeps the islands in the air, *Settled* stands them on the ground, *Mixed* sets some on the ground and leaves others hovering up to about 40 blocks above it.
+- **Taper** (landed continents only): how much the islands narrow toward the ground, from sheer walls at 0% to a sharp cone at 100%.
 
 The world height grows automatically to fit the layers, up to y 2031. The settings are stored in the world and cannot be changed later.
 
