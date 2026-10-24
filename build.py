@@ -218,6 +218,22 @@ def dimension_type():
             write(f"dimension_type/{name}.json", dt)
 
 
+LAYER_ORES = {
+    "ore_copper_small": (6.0, 0.3, 1.0),
+    "ore_gold": (2.5, 0.0, 0.6),
+    "ore_redstone": (3.0, 0.0, 0.5),
+    "ore_lapis": (1.5, 0.1, 0.7),
+    "ore_diamond_small": (2.5, 0.0, 0.4),
+}
+
+
+def layer_ores():
+    for ore, (count, lo, hi) in LAYER_ORES.items():
+        write(f"worldgen/placed_feature/layered/{ore}.json", {"feature": f"minecraft:{ore}", "placement": [
+            {"type": f"{NS}:layers", "count": count, "from": lo, "to": hi}, {"type": "minecraft:biome"}]})
+    return [df(f"layered/{ore}") for ore in LAYER_ORES]
+
+
 def biome_copy(src, remap, extra):
     b = load(f"worldgen/biome/{src}.json")
     b["features"] = [[g for f in step for g in (f, remap.get(f)) if g] for step in b["features"]]
@@ -300,7 +316,7 @@ if __name__ == "__main__":
     noise_settings()
     dimension_type()
     remap = layered_vegetation()
-    params, sources = biomes(remap, {})
+    params, sources = biomes(remap, {6: layer_ores()})
     world_preset(params)
     tags = biome_tags(sources)
     lang(sources)
