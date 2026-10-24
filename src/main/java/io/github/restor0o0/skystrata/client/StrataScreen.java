@@ -21,13 +21,14 @@ import net.minecraft.network.chat.Component;
 
 public class StrataScreen extends Screen {
     private static final int MIN_HEIGHT = 384;
-    private static final int LIST_WIDTH = 150, EDITOR_WIDTH = 200, GAP = 10;
+    private static final int LIST_WIDTH = 150, EDITOR_WIDTH = 200, GAP = 10, LIGHT_WIDTH = 160;
 
     private final CreateWorldScreen parent;
     private final int maxHeight;
     final List<Layer> layers;
     private final List<AbstractWidget> editor = new ArrayList<>();
     private int selected;
+    private boolean islandLight;
     private LayerList list;
     private Button preset, add, remove, up, down, done;
     private int editorX, editorY;
@@ -38,6 +39,7 @@ public class StrataScreen extends Screen {
         this.maxHeight = StrataPreset.maxHeight(context.worldgenLoadContext());
         Strata current = Strata.of(context.selectedDimensions().overworld());
         this.layers = new ArrayList<>((current != null ? current : Strata.DEFAULT).layers());
+        this.islandLight = StrataPreset.islandLight(context.selectedDimensions());
     }
 
     @Override
@@ -47,8 +49,11 @@ public class StrataScreen extends Screen {
         editorX = left + LIST_WIDTH + GAP;
         editorY = top;
 
-        preset = addRenderableWidget(Button.builder(Component.empty(), b -> nextPreset())
-                .bounds(left, 24, LIST_WIDTH + GAP + EDITOR_WIDTH, 20).build());
+        int presetWidth = LIST_WIDTH + GAP + EDITOR_WIDTH - LIGHT_WIDTH - 5;
+        preset = addRenderableWidget(Button.builder(Component.empty(), b -> nextPreset()).bounds(left, 24, presetWidth, 20).build());
+        addRenderableWidget(CycleButton.onOffBuilder(islandLight)
+                .withTooltip(v -> Tooltip.create(Component.translatable("skystrata.island_light.tooltip")))
+                .create(left + presetWidth + 5, 24, LIGHT_WIDTH, 20, Component.translatable("skystrata.island_light"), (b, v) -> islandLight = v));
         list = addRenderableWidget(new LayerList(this, minecraft, left, top, LIST_WIDTH, bottom - top - 24));
 
         int y = bottom - 20;
@@ -117,6 +122,14 @@ public class StrataScreen extends Screen {
                         (b, k) -> set(k.defaults().withGap(layer().gap()), true));
         kind.setTooltip(Tooltip.create(Component.translatable("skystrata.layer.kind.tooltip")));
         editor.add(kind);
+        if (l.kind() == Layer.Kind.CONTINENTS) {
+            CycleButton<Layer.Landing> landing = CycleButton.builder((Layer.Landing v) -> Component.translatable("skystrata.landing." + v.getSerializedName()), l.landing())
+                    .withValues(Layer.Landing.values())
+                    .create(0, 0, EDITOR_WIDTH, 20, Component.translatable("skystrata.layer.landing"),
+                            (b, v) -> set(layer().withLanding(v), true));
+            landing.setTooltip(Tooltip.create(Component.translatable("skystrata.layer.landing.tooltip")));
+            editor.add(landing);
+        }
         editor.add(new ValueSlider(EDITOR_WIDTH, "skystrata.layer.gap", Layer.MIN_GAP, Layer.MAX_GAP, 1, l.gap(), String::valueOf,
                 v -> set(layer().withGap(v), false)));
         editor.add(new ValueSlider(EDITOR_WIDTH, "skystrata.layer.thickness", Layer.MIN_THICKNESS, Layer.MAX_THICKNESS, 1, l.thickness(),
@@ -125,8 +138,12 @@ public class StrataScreen extends Screen {
                 v -> set(layer().withDensity(v / 100f), false)));
         editor.add(new ValueSlider(EDITOR_WIDTH, "skystrata.layer.size", Math.round(Layer.MIN_SIZE * 100), Math.round(Layer.MAX_SIZE * 100), 5,
                 Math.round(l.size() * 100), v -> v + "%", v -> set(layer().withSize(v / 100f), false)));
+        if (l.kind() == Layer.Kind.CONTINENTS && l.landing() != Layer.Landing.FLOATING) {
+            editor.add(new ValueSlider(EDITOR_WIDTH, "skystrata.layer.taper", 0, 100, 1, Math.round(l.taper() * 100), v -> v + "%",
+                    v -> set(layer().withTaper(v / 100f), false)));
+        }
         for (int i = 0; i < editor.size(); i++) {
-            editor.get(i).setPosition(editorX, editorY + i * 24);
+            editor.get(i).setPosition(editorX, editorY + i * 22);
             addRenderableWidget(editor.get(i));
         }
     }
@@ -162,7 +179,7 @@ public class StrataScreen extends Screen {
 
     private void apply() {
         Strata strata = strata();
-        parent.getUiState().updateDimensions((access, dims) -> StrataPreset.apply(access, dims, strata));
+        parent.getUiState().updateDimensions((access, dims) -> StrataPreset.apply(access, dims, strata, islandLight));
         minecraft.setScreen(parent);
     }
 
