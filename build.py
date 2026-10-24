@@ -16,6 +16,8 @@ HEIGHTS = (528, 784, 1040, 1552, 2096)
 TERRAIN_TOP_SLIDE = (130, 175)
 LAND_LIFT = 0.20
 DRY_ABOVE_Y = 10
+AMBIENT_LIGHT = 0.1
+VANILLA_LIGHT = "_vanilla_light"
 
 SKY_BIOMES = {
     "sky_taiga": ("taiga", (-2.0, -0.6), (-2.0, 2.0)),
@@ -26,7 +28,6 @@ SKY_BIOMES = {
     "sky_savanna": ("savanna", (0.6, 2.0), (-2.0, 2.0)),
 }
 SKY_DEPTH = -2.0
-LICHEN_PER_BLOCK = 0.3
 
 
 def load(rel):
@@ -105,22 +106,6 @@ def density_functions():
           json.loads(sc.replace("minecraft:overworld/depth", df("depth"))))
 
     write("worldgen/density_function/biome_depth.json", mx(0.0, df("depth")))
-
-
-def layer_count(per_block, from_ground=False):
-    return {"type": f"{NS}:layer_count", "per_block": per_block, "from_ground": from_ground}
-
-
-def island_lichen():
-    cf = load("worldgen/configured_feature/glow_lichen.json")
-    cf["config"].update(search_range=24, chance_of_spreading=1.0)
-    cf["config"]["can_be_placed_on"] += ["minecraft:dirt", "minecraft:coarse_dirt"]
-    write("worldgen/configured_feature/island_lichen.json", cf)
-    write("worldgen/placed_feature/island_lichen.json", {"feature": df("island_lichen"), "placement": [
-        layer_count(LICHEN_PER_BLOCK, True),
-        {"type": "minecraft:in_square"},
-        {"type": "minecraft:biome"}]})
-    return [df("island_lichen")]
 
 
 LAYERED_PREFIXES = ("trees_", "patch_grass_", "flower_", "patch_tall_grass", "patch_large_fern", "patch_berry_",
@@ -224,10 +209,28 @@ def noise_settings():
 
 
 def dimension_type():
-    for i, h in enumerate(HEIGHTS):
-        dt = load("dimension_type/overworld.json")
-        dt.update(min_y=MIN_Y, height=h, logical_height=h)
-        write(f"dimension_type/{PRESET}{'' if i == 0 else f'_{h}'}.json", dt)
+    for island_light in (True, False):
+        for i, h in enumerate(HEIGHTS):
+            dt = load("dimension_type/overworld.json")
+            dt.update(min_y=MIN_Y, height=h, logical_height=h, ambient_light=AMBIENT_LIGHT if island_light else 0.0)
+            name = PRESET + ("" if island_light else VANILLA_LIGHT) + ("" if i == 0 else f"_{h}")
+            write(f"dimension_type/{name}.json", dt)
+
+
+LAYER_ORES = {
+    "ore_copper_small": (6.0, 0.3, 1.0),
+    "ore_gold": (2.5, 0.0, 0.6),
+    "ore_redstone": (3.0, 0.0, 0.5),
+    "ore_lapis": (1.5, 0.1, 0.7),
+    "ore_diamond_small": (2.5, 0.0, 0.4),
+}
+
+
+def layer_ores():
+    for ore, (count, lo, hi) in LAYER_ORES.items():
+        write(f"worldgen/placed_feature/layered/{ore}.json", {"feature": f"minecraft:{ore}", "placement": [
+            {"type": f"{NS}:layers", "count": count, "from": lo, "to": hi}, {"type": "minecraft:biome"}]})
+    return [df(f"layered/{ore}") for ore in LAYER_ORES]
 
 
 def biome_copy(src, remap, extra):
@@ -313,7 +316,7 @@ if __name__ == "__main__":
     noise_settings()
     dimension_type()
     remap = layered_vegetation()
-    params, sources = biomes(remap, {8: island_lichen()})
+    params, sources = biomes(remap, {6: layer_ores()})
     world_preset(params)
     tags = biome_tags(sources)
     lang(sources)

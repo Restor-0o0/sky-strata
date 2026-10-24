@@ -1,4 +1,4 @@
-A world type for Minecraft 1.21.1 built for airships. Giant floating continents hang over a forest floor, with layers of sky islands above them. If you play with Create Aeronautics or similar mods, you will need them to get anywhere.
+A world type for Minecraft 1.21.1 built for airships. Giant continents float over a forest floor, or come down to stand on it, with layers of sky islands above. If you play with Create Aeronautics or similar mods, you will need them to get anywhere.
 
 ![Layers](https://raw.githubusercontent.com/Restor-0o0/sky-strata/main/docs/layers.png)
 
@@ -6,15 +6,19 @@ A world type for Minecraft 1.21.1 built for airships. Giant floating continents 
 
 By default the world has three layers:
 
-- **Giant islands** (top surface around y 230–280). Floating continents hundreds of blocks across, with near-vertical cliffs. Under them lies a forest floor with rivers.
+- **Giant islands** (top surface around y 230–280). Floating continents hundreds of blocks across.
 - **Dense sky layer** (y 305–375). Frequent large islands.
 - **Shards** (y 385–462). A sparse layer of small floating islands.
 
-The ocean and vanilla terrain stay below. Trees and grass grow on every level.
+The ocean, the coast and the ground between the islands keep the vanilla terrain. Trees and grass grow on every level, and the islands and continents have their own caves and ores. The islands above the continents get their own sky biomes, or the biome of the place below them if you prefer.
+
+The **Settled** preset brings the giant islands down: some stand on the ground on sheer cliffs, others hover low above it, with the ground they cracked away from between them.
+
+Sky light also falls at an angle and spreads under floating islands, so the ground beneath them is not pitch black. You can turn this off per world.
 
 ## Configurable layers
 
-Pick **Sky Strata** as the world type and click **Customize**. Start from a preset (Classic, Archipelago, Sky Tower, Giants, Shattered) or build your own stack of up to 8 layers. For each layer you set the type (continents, islands or shards), gap, thickness, density and island size. The world height grows to fit, up to y 2031.
+Pick **Sky Strata** as the world type and click **Customize**. Start from a preset (Classic, Settled, Archipelago, Sky Tower, Giants, Shattered) or build your own stack of up to 8 layers. For each layer you set the type (continents, islands or shards), gap, thickness, density and island size, and for continents whether they float, stand on the ground or mix both, and how much landed ones taper toward the ground. The world height grows to fit, up to y 2031.
 
 On a dedicated server set `level-type=skystrata\:sky_strata` in `server.properties`. Layers for new worlds are read from `config/skystrata.json`, either as a preset name or a list of layers. See the [README](https://github.com/Restor-0o0/sky-strata#dedicated-server) for the format.
 

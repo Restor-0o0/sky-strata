@@ -28,7 +28,7 @@ public record Strata(List<Layer> layers) {
         layers = List.copyOf(layers);
     }
 
-    public record Placed(Layer layer, int base, int top, int gateLo, int gateHi, int lightLo) {
+    public record Placed(Layer layer, int base, int top, int gateLo, int gateHi) {
     }
 
     public List<Placed> placed() {
@@ -38,9 +38,10 @@ public record Strata(List<Layer> layers) {
             int base = prev + l.gap();
             int top = base + l.thickness();
             if (l.kind() == Layer.Kind.CONTINENTS) {
-                out.add(new Placed(l, base, top, Math.max(MIN_Y, base - 75), top + 50, top - 70));
+                int lo = l.landing() == Layer.Landing.FLOATING ? Math.max(MIN_Y, base - 75) : GROUND - 40;
+                out.add(new Placed(l, base, top, lo, top + 50));
             } else {
-                out.add(new Placed(l, base, top, base, top, base));
+                out.add(new Placed(l, base, top, base, top));
             }
             prev = top;
         }
@@ -58,17 +59,6 @@ public record Strata(List<Layer> layers) {
     public int skyBiomesFrom() {
         return placed().stream().filter(p -> p.layer().kind() != Layer.Kind.CONTINENTS)
                 .mapToInt(Placed::base).findFirst().orElse(Integer.MAX_VALUE);
-    }
-
-    public List<int[]> lightBands(boolean fromGround) {
-        List<int[]> bands = new ArrayList<>();
-        if (layers.isEmpty()) return bands;
-        if (fromGround) {
-            bands.add(new int[]{GROUND - 23, maxY()});
-            return bands;
-        }
-        for (Placed p : placed()) bands.add(new int[]{p.lightLo(), p.gateHi()});
-        return bands;
     }
 
     @Nullable

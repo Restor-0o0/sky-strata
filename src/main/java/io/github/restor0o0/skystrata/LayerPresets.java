@@ -9,6 +9,10 @@ import java.util.Optional;
 public record LayerPresets(String name, Strata strata) {
     public static final List<LayerPresets> ALL = List.of(
             new LayerPresets("classic", Strata.DEFAULT),
+            new LayerPresets("settled", of(
+                    Kind.CONTINENTS.defaults().withLanding(Layer.Landing.MIXED),
+                    Kind.ISLANDS.defaults(),
+                    Kind.SHARDS.defaults())),
             new LayerPresets("archipelago", of(
                     new Layer(Kind.ISLANDS, 30, 70, 0.5f, 1.5f),
                     new Layer(Kind.ISLANDS, 40, 60, 0.45f, 1f),

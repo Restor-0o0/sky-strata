@@ -23,7 +23,8 @@ public final class StrataDensity implements DensityFunction {
             Strata.CODEC.optionalFieldOf("layers", Strata.DEFAULT).forGetter(StrataDensity::strata),
             DensityFunction.HOLDER_HELPER_CODEC.fieldOf("terrain").forGetter(StrataDensity::terrain),
             DensityFunction.HOLDER_HELPER_CODEC.fieldOf("land").forGetter(StrataDensity::land),
-            StrataNoises.CODEC.forGetter(StrataDensity::noises)
+            StrataNoises.CODEC.forGetter(StrataDensity::noises),
+            StrataCaves.CODEC.forGetter(StrataDensity::caves)
     ).apply(i, StrataDensity::new));
     private static final KeyDispatchDataCodec<StrataDensity> KEY_CODEC = KeyDispatchDataCodec.of(CODEC);
     static final DensityFunction Y = DensityFunctions.yClampedGradient(-4064, 4062, -4064, 4062);
@@ -33,17 +34,20 @@ public final class StrataDensity implements DensityFunction {
     private final DensityFunction terrain;
     private final DensityFunction land;
     private final StrataNoises noises;
+    private final StrataCaves caves;
     private final DensityFunction inner;
 
-    public StrataDensity(Strata strata, DensityFunction terrain, DensityFunction land, StrataNoises noises) {
-        this(strata, terrain, land, noises, build(strata, terrain, land, noises));
+    public StrataDensity(Strata strata, DensityFunction terrain, DensityFunction land, StrataNoises noises, StrataCaves caves) {
+        this(strata, terrain, land, noises, caves, build(strata, terrain, land, noises, caves));
     }
 
-    private StrataDensity(Strata strata, DensityFunction terrain, DensityFunction land, StrataNoises noises, DensityFunction inner) {
+    private StrataDensity(Strata strata, DensityFunction terrain, DensityFunction land, StrataNoises noises, StrataCaves caves,
+                          DensityFunction inner) {
         this.strata = strata;
         this.terrain = terrain;
         this.land = land;
         this.noises = noises;
+        this.caves = caves;
         this.inner = inner;
     }
 
@@ -63,11 +67,15 @@ public final class StrataDensity implements DensityFunction {
         return noises;
     }
 
-    public StrataDensity withStrata(Strata strata) {
-        return new StrataDensity(strata, terrain, land, noises);
+    public StrataCaves caves() {
+        return caves;
     }
 
-    private static DensityFunction build(Strata strata, DensityFunction terrain, DensityFunction land, StrataNoises n) {
+    public StrataDensity withStrata(Strata strata) {
+        return new StrataDensity(strata, terrain, land, noises, caves);
+    }
+
+    private static DensityFunction build(Strata strata, DensityFunction terrain, DensityFunction land, StrataNoises n, StrataCaves caves) {
         Map<Layer.Kind, Integer> seen = new EnumMap<>(Layer.Kind.class);
         List<DensityFunction> continents = new ArrayList<>(), islands = new ArrayList<>();
         for (Strata.Placed p : strata.placed()) {
@@ -79,7 +87,8 @@ public final class StrataDensity implements DensityFunction {
                         30.0 / 70, 16.0 / 70, 50.0 / 70, n);
                 case SHARDS -> island(p, noise2d(n.sparse(), l, k), 40.0 / 77, 10.0 / 77, 38.0 / 77, n);
             };
-            (l.kind() == Layer.Kind.CONTINENTS ? continents : islands).add(body);
+            if (l.kind() != Layer.Kind.SHARDS) body = caves.carve(DensityFunctions.cacheOnce(mul(constant(StrataCaves.DEPTH_SCALE), body)));
+            (l.kind() == Layer.Kind.CONTINENTS ? continents : islands).add(gate(p, body));
         }
         DensityFunction out = terrain;
         for (List<DensityFunction> group : List.of(continents, islands)) {
@@ -91,13 +100,34 @@ public final class StrataDensity implements DensityFunction {
     private static DensityFunction continent(Strata.Placed p, int k, DensityFunction land, StrataNoises n) {
         Layer l = p.layer();
         double f = l.thickness() / 160.0;
-        DensityFunction shape = add(noise2d(n.giant(), l, k), add(constant(bias(l)), mul(constant(1.5), add(land, constant(-1.0)))));
+        boolean floating = l.landing() == Layer.Landing.FLOATING;
+        DensityFunction shape = !floating ? plateaus(l, k, land, n)
+                : add(noise2d(n.giant(), l, k), add(constant(bias(l)), mul(constant(1.5), add(land, constant(-1.0)))));
         DensityFunction h = add(flat(shape), mul(constant(0.045), DensityFunctions.noise(n.detail(), 1.0, 1.0)));
         DensityFunction top = flat(add(constant(p.top()), mul(constant(25 * f), noise2d(n.giantTop(), l, k))));
         DensityFunction belowTop = add(Y, mul(constant(-1.0), top));
-        DensityFunction undercut = mul(constant(1 / (280 * f)), add(belowTop, constant(40 * f)));
-        DensityFunction profile = min(min(mul(constant(-1 / 40.0), belowTop), mul(constant(1 / (900 * f)), belowTop)), undercut);
-        return gate(p, mul(constant(2.0), add(h, profile)));
+        DensityFunction cap = mul(constant(-1 / 40.0), belowTop);
+        DensityFunction profile;
+        if (!floating) {
+            double taper = 0.4 * l.taper();
+            profile = min(cap, DensityFunctions.yClampedGradient(Strata.GROUND + 10, p.top(), -taper, 0.0));
+            if (l.landing() == Layer.Landing.MIXED) {
+                DensityFunction lift = add(constant(0.3), mul(constant(2.5), noise2d(n.giant(), l, k + 3, 1.0))).clamp(-0.4, 1.0);
+                DensityFunction bottom = flat(add(constant(Strata.GROUND + 10), mul(constant(40.0), lift)));
+                profile = min(profile, mul(constant(1 / 30.0), add(Y, mul(constant(-1.0), bottom))));
+            }
+        } else {
+            DensityFunction undercut = mul(constant(1 / (280 * f)), add(belowTop, constant(40 * f)));
+            profile = min(min(cap, mul(constant(1 / (900 * f)), belowTop)), undercut);
+        }
+        return mul(constant(2.0), add(h, profile));
+    }
+
+    private static DensityFunction plateaus(Layer l, int k, DensityFunction land, StrataNoises n) {
+        DensityFunction inland = add(mul(constant(3.0), land).clamp(0.0, 1.0), constant(-1.0));
+        DensityFunction cracks = add(noise2d(n.giant(), l, k, 2.0).abs(), constant(0.25 * l.density() - 0.3));
+        DensityFunction presence = add(mul(constant(2.0), noise2d(n.giantTop(), l, k + 5, 0.6)), constant(2.4 * l.density() - 0.5));
+        return add(min(cracks, presence), mul(constant(1.5), inland));
     }
 
     private static DensityFunction island(Strata.Placed p, DensityFunction noise, double center, double up, double down, StrataNoises n) {
@@ -108,7 +138,7 @@ public final class StrataDensity implements DensityFunction {
         double topK = 1 / (up * t), bottomK = 1 / (down * t);
         DensityFunction profile = min(DensityFunctions.yClampedGradient(c, c + s, 0.0, -s * topK),
                 DensityFunctions.yClampedGradient(c - s, c, -s * bottomK, 0.0));
-        return gate(p, mul(constant(2.0), add(h, profile)));
+        return mul(constant(2.0), add(h, profile));
     }
 
     private static double bias(Layer l) {
@@ -120,7 +150,11 @@ public final class StrataDensity implements DensityFunction {
     }
 
     private static DensityFunction noise2d(Holder<NormalNoise.NoiseParameters> noise, Layer l, int k) {
-        return DensityFunctions.shiftedNoise2d(constant(k * SHIFT), constant(-k * SHIFT), 1.0 / l.size(), noise);
+        return noise2d(noise, l, k, 1.0);
+    }
+
+    private static DensityFunction noise2d(Holder<NormalNoise.NoiseParameters> noise, Layer l, int k, double scale) {
+        return DensityFunctions.shiftedNoise2d(constant(k * SHIFT), constant(-k * SHIFT), scale / l.size(), noise);
     }
 
     private static DensityFunction flat(DensityFunction f) {
@@ -139,7 +173,7 @@ public final class StrataDensity implements DensityFunction {
 
     @Override
     public DensityFunction mapAll(Visitor visitor) {
-        return visitor.apply(new StrataDensity(strata, terrain, land, noises, inner.mapAll(visitor)));
+        return visitor.apply(new StrataDensity(strata, terrain, land, noises, caves, inner.mapAll(visitor)));
     }
 
     @Override

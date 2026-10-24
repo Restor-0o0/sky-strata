@@ -2,6 +2,7 @@ package io.github.restor0o0.skystrata;
 
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.datafixers.util.Either;
 import com.mojang.logging.LogUtils;
@@ -26,7 +27,10 @@ public final class ServerConfig {
         return FMLPaths.CONFIGDIR.get().resolve(SkyStrata.MOD_ID + ".json");
     }
 
-    public static Strata load() {
+    public record Settings(Strata strata, boolean islandLight, boolean skyBiomes) {
+    }
+
+    public static Settings load() {
         Path path = path();
         try {
             if (Files.notExists(path)) {
@@ -41,10 +45,16 @@ public final class ServerConfig {
                         throw new IllegalStateException("Invalid " + path + ": " + error);
                     })
                     .map(LayerPresets::strata, s -> s);
-            LOGGER.info("Generating Sky Strata layers from {}: {}", path, strata.layers());
-            return strata;
+            boolean islandLight = flag(json, "island_light");
+            boolean skyBiomes = flag(json, "sky_biomes");
+            LOGGER.info("Generating Sky Strata layers from {}: {}, island light {}, sky biomes {}", path, strata.layers(), islandLight, skyBiomes);
+            return new Settings(strata, islandLight, skyBiomes);
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot read " + path, e);
         }
+    }
+
+    private static boolean flag(JsonElement json, String name) {
+        return !(json instanceof JsonObject o && o.has(name)) || o.get(name).getAsBoolean();
     }
 }

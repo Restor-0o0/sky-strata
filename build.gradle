@@ -16,6 +16,7 @@ sourceSets.main.resources.srcDir('src/generated/resources')
 
 legacyForge {
     version = "${minecraft_version}-${forge_version}"
+    accessTransformers.from "src/main/resources/META-INF/accesstransformer.cfg"
 
     parchment {
         mappingsVersion = project.parchment_mappings_version

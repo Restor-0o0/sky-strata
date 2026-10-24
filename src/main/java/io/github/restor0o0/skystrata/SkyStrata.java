@@ -23,10 +23,11 @@ public class SkyStrata {
     static {
         DENSITY_FUNCTIONS.register("strata", StrataDensity.CODEC::codec);
         DENSITY_FUNCTIONS.register("strata_biome_depth", StrataBiomeDepth.CODEC::codec);
+        DENSITY_FUNCTIONS.register("strata_biome_climate", StrataBiomeClimate.CODEC::codec);
     }
 
-    public static final RegistryObject<PlacementModifierType<LayerCountPlacement>> LAYER_COUNT =
-            PLACEMENTS.register("layer_count", () -> () -> LayerCountPlacement.CODEC);
+    public static final RegistryObject<PlacementModifierType<LayerPlacement>> LAYERS =
+            PLACEMENTS.register("layers", () -> () -> LayerPlacement.CODEC);
 
     public SkyStrata() {
         IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
